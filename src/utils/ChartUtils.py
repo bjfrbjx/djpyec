@@ -15,6 +15,7 @@ from pyecharts import Page,Grid,Overlap,Timeline
 WIDTH=1600
 HEIGHT=800
 INTERVAL=60
+
 #grid并行组图允许的图表种类
 grid_enable_charts=(Line,Bar,Kline,Scatter,EffectScatter,HeatMap,Boxplot,Pie)
 def ck_enable_grid(chartobj):
