@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>IE导出CSV</title>
+ <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css">
+    <script type="text/javascript" src="http://code.jquery.com/jquery.min.js"></script>
+    <script type="text/javascript" src="http://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+</head>
+<body>
+    <table id="tableList" width="100%" ></table>
+	<table id="myTable" class="table table-striped table-hover" style="width:100%">
+</table>
+
+<script>
+$(document).ready( function () {
+    var dt=$('#myTable').DataTable({
+            // 开启服务器模式
+            "serverSide": true,
+            // 开启处理功能
+            "processing" : true,
+            // 允许排序
+            "orderable":true,
+            // 允许查询
+            "searching" : true,
+			//左下角信息
+			"info": true,
+             // 根据第四列降序排列
+            "order": [[ 3, "desc" ]],
+			//浏览器缓存状态
+			"stateSave":true,
+			//是否自动计算列宽，计算列宽会花费一些时间，如果列宽通过aoColumns传递，可以关闭该属性作为优化  
+			"bAutoWidth":true,  
+			//是否延迟渲染， 
+			"bDeferRender":true, 
+            // 发送post请求
+            "ajax":{
+                "type": 'POST' ,
+                "url": '/readdata/',
+				"data": {"user_id": 451}
+            },
+			//额外参数
+			"fnServerParams": function ( aoData ) { 		
+			aoData.file="学生成绩表.csv"
+			}  ,
+            // 返回数据
+            columns: [
+                { "data": "name",
+				"title":"作业名称",
+                    // 数据渲染，返回超链接的字条
+                    "render": function ( data, type, full, meta ) {
+                        return '<a href="/work/work_results?name='+data+'" ><span>'+data+'</span></a>';
+                }
+                },
+                { "data": "user","title":"执行人"},
+                { "data": "fun","title":"执行方式"},
+                { "data": "start_time","title":"开始时间"},
+                { "data": "end_time","title":"结束时间"},
+                { "data": "sum_time","title":"总耗时"},
+                { "data": "status","title":"作业状态",
+                    // 数据渲染，判断返回内容，返回span颜色
+                    "render": function (data, type, full, meta) {
+                        if (data == '执行成功') {
+                            return '<span class="label label-success">' + data + '</span>';
+                        }
+                        else if (data == '执行失败') {
+                            return '<span class="label label-danger">' + data + '</span>';
+                        }
+                        else if (data == '执行中') {
+                            return '<span class="label label-warning">' + data + '</span>';
+                        }
+                        else {
+                            return '<span class="label label-primary">' + data + '</span>';
+                        }
+                    }}
+            ],
+            'columnDefs': [{
+                'targets': 0,
+                'searchable': true
+        }]
+
+        });
+});
+</script>
+</body>
+</html>

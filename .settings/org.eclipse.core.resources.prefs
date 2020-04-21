@@ -1,0 +1,15 @@
+eclipse.preferences.version=1
+encoding//src/djpyec/urls.py=utf-8
+encoding//src/login/forms.py=utf-8
+encoding//src/login/models.py=utf-8
+encoding//src/login/urls.py=utf-8
+encoding//src/login/views.py=utf-8
+encoding//src/manage.py=utf-8
+encoding//src/pyech/forms.py=utf-8
+encoding//src/pyech/urls.py=utf-8
+encoding//src/pyech/views.py=utf-8
+encoding//src/utils/ChartUtils.py=utf-8
+encoding//src/utils/cklogin.py=utf-8
+encoding//src/utils/drawchart.py=utf-8
+encoding//src/utils/echartsparams.py=utf-8
+encoding//src/utils/tranchart.py=utf-8

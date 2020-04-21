@@ -1,0 +1,32 @@
+﻿{% extends 'base.html' %}
+{% load staticfiles %}
+{% block title %}index{% endblock %}
+{% block css %}
+    <link href="{% static 'bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block head_js%}
+    {% for jsfile_name in script_list %}
+    <script src="{{host}}/{{jsfile_name}}.js"></script>
+    {% endfor %}
+ {% endblock %}
+    
+{% block content %}
+  {{myechart|safe}}
+{% endblock %}
+
+{% block end_js %}
+<script>
+    $("#demo").carousel()
+    $("#demo a.left").click(function (){
+        $("#demo").carousel("prev");
+    });
+    $("#demo a.right").click(function (){
+        $("#demo").carousel("next");
+    });
+
+
+</script>
+<script src="{% static 'JS/jquery-3.2.1.js' %}"></script>
+<script src="{% static 'bootstrap/js/bootstrap.min.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,109 @@
+﻿with tf.device('/device:GPU:0'):
+    v1 = tf.constant([1.0, 2.0, 3.0], shape=[3], name='v1')
+    v2 = tf.constant([1.0, 2.0, 3.0], shape=[3], name='v2')
+    sumV12 = v1 + v2
+    with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
+        print(sess.run(sumV12))
+
+
+import pandas as pd
+
+file = pd.read_csv('wea.csv')
+df = pd.DataFrame(file)
+
+for i in range(len(df)):
+    document = df[i:i+1]
+    print(document,'\n')
+
+
+
+
+
+import os
+from tensorflow.python.client import device_lib
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "99"
+print(device_lib.list_local_devices())
+
+
+----------------------------------
+1 pandas 读取csv文件 预处理
+3tensorly生成张量对象
+4pyecharts生成图表
+
+------------------
+目标 ：     1准备样本  wea.csv文件，grade.csv
+	2堆叠图
+	3网站实现
+
+
+-------------
+1输入csv文件，获取DataFrame
+2输入图表类型名称，获取echarts对应图表生成器
+3指定坐标列和数据列
+//4平均，max等功能指定
+
+test联合测试
+
+<!-- myfirstvis/templates/pyecharts.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Proudly presented by PycCharts</title>
+    {% for jsfile_name in script_list %}
+    <script src="{{host}}/{{jsfile_name}}.js"></script>
+    {% endfor %}
+</head>
+<body>
+  {{myechart|safe}}
+</body>
+</html>
+
+{% extends 'base.html' %}
+{% block title %}主页{% endblock %}
+{% block content %}
+    {% if request.session.is_login %}
+    <h1>你好,{{ request.session.user_name }}欢迎回来</h1>
+    {% else %}
+    <h1>未登录</h1>
+    {% endif %}
+{% endblock %}
+
+
+
+
+
+
+
+
+
+    def write(self, b):
+        """Write the given bytes or bytearray object *b* to the socket
+        and return the number of bytes written.  This can be less than
+        len(b) if not all data could be written.  If the socket is
+        non-blocking and no bytes could be written None is returned.
+        """
+        self._checkClosed()
+        self._checkWritable()
+        try:
+            return self._sock.send(b)
+        except error as e:
+            # XXX what about EINTR?
+            if e.args[0] in _blocking_errnos:
+                return None
+            raise
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

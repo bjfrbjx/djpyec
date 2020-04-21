@@ -1,0 +1,861 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% block title %} 上传 {% endblock %}
+{% block css %}
+	<link rel="stylesheet" href="{% static 'bootstrap/css/bootstrap-switch.min.css' %}">
+	<link rel="stylesheet" href="{% static 'CSS/style1.css' %}" media="screen" type="text/css" />
+ <link rel="stylesheet" type="text/css" href="http://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/1.4.2/css/buttons.dataTables.min.css"/>
+{% endblock %}
+
+
+{% block head_js %}
+<script src="http://d3js.org/d3.v4.min.js" charset="utf-8"></script>
+<script src="{% static 'JS/layer/layer.js' %}"></script>
+<script src="{% static 'bootstrap/js/bootstrap-switch.min.js' %}"></script>
+<script src="{% static 'JS/jquery.serializejson.min.js' %}"></script>
+<script src="http://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+<script src="{% static 'JS/echarts.min.js' %}"></script>
+<script src="{% static 'JS/echarts-gl.min.js' %}"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/1.4.2/js/dataTables.buttons.min.js"></script>
+
+{% endblock %}
+
+{% block content %}
+
+ <!-- 侧边 -->
+    <div class="left-menu">
+        
+<!--    logo-->
+        <div class="logo"><span>菜单栏</span></div>
+        
+        <div class="accordion">
+        
+	        <div class="section">
+			      <input type="radio" name="accordion-1" id="section-3" value="toggle"/>
+			      <label for="section-3"><span>数据文件</span></label>
+			       <div id="fileslist" class="content  ">
+			        <div class="input-group">
+			        <input type="file" name="file" id="i-file" accept="*.csv" onchange="$('#file_location').val($('#i-file').val());" style="display: none"/>
+			        <input id='file_location' class="form-control input-sm" onclick="$('#i-file').click();">
+	               <input type="button" id="subtn" class="btn btn-primary input-sm pull-right" value="提交文件">
+	               <input type="button" class="btn btn-primary input-sm pull-left"  onclick="del_files('fileslist')" value="删除文件">
+	           </div>
+			        <div class="fileList">
+			            {% if files %}
+			            {% for file in files%}
+			            <div class='rows'>
+			            <label class="protocol" style="display:flex;">
+			            <input type="checkbox" name="datafile" class="input_agreement_protocol" value="{{ file }}">
+			            <span></span></label>
+                            <a class='btn' name="{{ file }}">{{ file }}</a>·<a class='btn' name="{{ file }}">下载</a>
+			            </div>
+			            {% endfor %}
+			            {% endif %}
+			    </div>
+			    </div>
+			    </div>
+			    
+			    <!--  图表类型选择-->
+			    <div class="section">
+			      <input type="radio" name="accordion-1" id="section-4" value="toggle"/>
+			      <label for="section-4"><span>图表类型</span></label>
+			     <div class="content btn-group-vertical  " id="supporttypes">
+								{% if charttypes %}
+								{% for k,v in charttypes%}
+								<label class="btn btn-primary"><input type='radio' name='charttype'  value='{{  k }}' />{{ v }}({{ k }})</label>
+								{% endfor %}
+								{% endif %}
+			        </div>
+			    </div>
+			    
+				<div class="section">
+		                <input type="radio" name="accordion-1" id="section-6" value="toggle"/>
+		                <label for="section-6"><span>维度选择</span></label>
+		                <div id="datalist" class="content  ">
+		                </div>
+		                </div>
+		                
+				<div class="section">
+				      <input type="radio" name="accordion-1" id="section-7" value="toggle"/>
+				      <label for="section-7"><span>临时图表</span></label>
+				       <div id="cachelist" class="content  ">
+				        <button class="btn btn-primary" onclick="del_files('cachelist')">删除临时图表</button>
+				        <div class="fileList">
+				            {% if cachedcharts %}
+				            {% for cachedchart in cachedcharts%}
+				            <div class='rows'>
+				            <label class="protocol" style="display:flex;">
+				            <input type="checkbox" name="cachefile" class="input_agreement_protocol" value="{{ cachedchart.chartid }}">
+				            <span></span>
+				            </label>
+				            <a class='btn' name="{{ cachedchart.chartid }}">{{ cachedchart.charttitle }}</a>
+				            </div>
+				            {% endfor %}
+				            {% endif %}
+				    </div>
+				    </div>
+				    </div>
+				    
+           <div class="section">
+                <input type="radio" name="accordion-1" id="section-2" value="toggle"/>
+                <label for="section-2"><span>作品列表</span></label>
+                <div id="chartslist" class="content  " >
+                <button class="btn btn-primary" onclick="del_files('chartslist')">删除图表文件</button>
+                <div class="fileList">
+                    {% if chartsfiles %}
+                    {% for file in chartsfiles%}
+                    <div class='rows'>
+                    <label class="protocol" style="display:flex;">
+                    <input type="checkbox" name="chartsfile"  class="input_agreement_protocol" value="{{ file }}">
+                    <span></span></label>
+                    <a class="btn" target='_blank' href="/media/download/{{ username }}/{{ file }}" name="{{ file }}">{{ file }}</a>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+                </div>
+                </div>
+                
+            <div class="section" >
+                <input type="radio" name="accordion-1" id="section-1" checked="checked"/>
+                <label for="section-1"><span>整合作品</span></label>
+                <ul class="content">
+                            <li>
+                                <a class="J_menuItem" href="javascript:void(0)" onclick="conform_charts(&quot;grid&quot;)">并行整合</a>
+                                <a class="J_menuItem" href="javascript:void(0)" onclick="conform_charts(&quot;overlap&quot;)">叠加整合</a>
+                                <a class="J_menuItem" href="javascript:void(0)" onclick="conform_charts(&quot;page&quot;)">顺序图表</a>
+                                <a class="J_menuItem" href="javascript:void(0)" onclick="conform_charts(&quot;timeline&quot;)">时间播放</a>
+                            </li>
+                </ul>
+                </div>
+
+</div>
+</div>
+
+<div class="right-body ">
+    <!-- table容器-->
+    <div class="csv_dt"><table id="CSVTable"></table></div>
+    <!-- chart 容器 -->
+    <div id="myCarousel" class="carousel slide" >
+	<!-- 轮播（Carousel）指标 -->
+	<ol class="carousel-indicators" style="bottom:-20px; left:40%;">
+	</ol>   
+	<!-- 轮播（Carousel）项目 -->
+	<div class="carousel-inner container" id="chartscontainer" >
+
+	</div>
+</div> 
+
+    </div>
+{% endblock %}
+
+{% block end_js %}
+<script type="text/javascript">
+//django的异步认证
+$(document).ajaxSend(function(event, xhr, settings) {
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie != '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = jQuery.trim(cookies[i]);
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    function sameOrigin(url) {
+        // url could be relative or scheme relative or absolute
+        var host = document.location.host; // host + port
+        var protocol = document.location.protocol;
+        var sr_origin = '//' + host;
+        var origin = protocol + sr_origin;
+        // Allow absolute or scheme relative URLs to same origin
+        return (url == origin || url.slice(0, origin.length + 1) == origin + '/') ||
+            (url == sr_origin || url.slice(0, sr_origin.length + 1) == sr_origin + '/') ||
+            // or any other URL that isn't scheme relative or absolute i.e relative.
+            !(/^(\/\/|http:|https:).*/.test(url));
+    }
+    function safeMethod(method) {
+        return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+    }
+ 
+    if (!safeMethod(settings.type) && sameOrigin(settings.url)) {
+        xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+    }
+});
+
+</script>
+<script name="npoper" src="/static/JS/npoper.js">
+
+/**
+ *选择npy文件后的浮动层
+ */
+</script>
+<script type="text/javascript" name="upload">
+/*
+*上传文件
+*/
+    var dt;
+    var lastfile;
+$(function () { 
+    //监听提交文件按钮点击事件，上传文件
+	$("#subtn").click(function(){
+		var file=$("#i-file")[0].files[0]
+		if(file["size"]>50000000){
+			alert("只接受50M一下的csv文件")
+			return ;
+		}
+		var formData = new FormData();
+	    formData.append("file",file);
+		
+		$.ajax({
+			url:"/upload/",
+			type:"post",
+			data:formData,
+            contentType: false,
+            processData: false,
+			success: function (data) {
+				if(data["worning"]){
+					alert(data["worning"])
+				}
+				else{
+				
+				var files=data["files"]
+				$("#fileslist div.fileList").find("div.rows").remove();
+				for (file in files){
+					$("#fileslist div.fileList").append("<div class='rows'><label class='protocol' style='display:flex;'><input type='checkbox' class='input_agreement_protocol' name='datafile'  value='"+files[file]+"'><span></span></label><a class='btn' name='"+files[file]+"' >"+files[file]+"</a>·<a class='btn' name='"+files[file]+"' >下载</a></div>")
+				}
+				$('#section-3').click();
+				$('#file_location').val("");
+				}
+			},
+			error: function (data) {
+				
+				alert("上传失败！");
+
+			}
+		});	
+	})	;
+
+
+
+    $("#fileslist div.rows a:nth-child(3)").click(function(v){
+        $.ajax({
+		url:"/downloaddatafile/",
+		type:"post",
+		data: JSON.stringify({filename:this.name}),
+		processData: false,
+		contentType: "application/json",
+		success: function (data) {
+			if(data["worning"]){
+                alert(data["worning"])
+			}
+			else{
+                
+                jQuery("<a  id='tmpdownload' href='"+data['fileURL']+"' ></a>").appendTo('body');
+                document.getElementById("tmpdownload").click();
+                $("#tmpdownload").remove();
+            }
+        },
+		error: function (data) {
+			alert("无法下载")
+		}
+        });
+    })
+    //监听文件名的悬停事件，提取表头
+    $("#fileslist div.rows a:nth-child(2)").hover(function(){
+        var thistitle=""
+        $.ajax({
+		url:"/hoverheaderinfo/",
+        async:false,
+		type:"post",
+		data: JSON.stringify({filename:this.name}),
+		dataType: 'json',
+		processData: false,
+		contentType: "application/json",
+		success: function (data) {
+			if(data["worning"]){
+                thistitle=data["worning"]
+			}
+			else{
+                thistitle=data["headinfo"]
+            }
+        },
+		error: function (data) {
+			thistitle="无法获取部分信息"
+		}
+        });
+        
+    $(this).attr("title",thistitle);
+        
+    });
+}); 
+</script>
+<script type="text/javascript" name="select">
+var items=[]
+var dataformat=[]
+var inputtemp=''
+
+//添加图表的必要数据格式组
+function addGroup(){
+	$("#dataformatform").append(inputtemp);
+}
+//添加npy张量的分组条件输入框
+function addgrpcond(){
+    $(".grpconditions form").append("<input type='text' name='grpcondition[]' placeholder='ALL或者v==0或者v>1 或者 (v>1)|(v<-1)或者(v<1)&(v>-1) 的格式'/>")
+}
+//添加npy张量选择列名的输入框
+function addcolaxis(){
+    $(".colaxies form").append("<input type='text' name='colaxis[]' placeholder='输入列名'/>")
+}
+
+//从后端获取获取样式参数配置组
+function subdataformat(charttype){
+	dataformats=$("#dataformatform").serializeJSON();
+	$.ajax({
+		url:"/getchartoptions/",
+		type:"post",
+		data: JSON.stringify({charttype:charttype}),
+		dataType: 'json',
+		processData: false,
+		contentType: "application/json",
+		success: function (data) {
+			if(data["worning"]){
+				alert(data["worning"])
+			}
+			else{
+                // 生成弹窗
+				layer.prompt({
+					formType: 2,
+					value: '初始标题',
+					placeholder: '输入标题',
+					title: '详细配置',
+					area: ['200px', '30px'] 
+					} ,
+					function(value, index, elem){
+						var formdata=$("#singlechart_options_form").serializeJSON();  
+			             //开始绘制
+						data=JSON.stringify({charttype: charttype,dataformats:dataformats , options:formdata, title:value})
+						
+						$.ajax({
+							url:"/drawchart/",
+							type:"post",
+							data:data,
+							dataType: 'json',
+							processData: false,
+							contentType: "application/json",
+							success: function (data) {
+								if(data["worning"]){
+									alert(data["worning"])
+								}
+								else{
+										for (i in data["script_list"]){
+											var src=data['host']+"/"+data['script_list'][i]+".js"
+											if($("head script[src='"+src+"']").length==0){
+											var script="<script src='"+src+"'/>"
+											$("head").append(script)
+											}
+										}
+							            
+									var buttons_str=""
+									if(charttype =='bar' || charttype=='line' ){
+										buttons_str+="<button class='btn btn-success btn-rounded' onclick=\"dataprocess('average','"+data['file_name']+"','"+data['chart_id']+"') \">平均值</button>"
+										buttons_str+="<button class='btn btn-success btn-rounded' onclick=\"dataprocess('min','"+data['file_name']+"','"+data['chart_id']+"')\" >最小值</button>"
+										buttons_str+="<button class='btn btn-success btn-rounded' onclick=\"dataprocess('max','"+data['file_name']+"','"+data['chart_id']+"')\">最大值</button>"
+										buttons_str+="<button class='btn btn-success btn-rounded' onclick=\"dataprocess('sum','"+data['file_name']+"','"+data['chart_id']+"')\">总和</button>"
+									}
+									$("#chartscontainer").append("<div class='item'> "+buttons_str+data["echart"]+"</div>");
+									check_carousel();
+									str='<div class="rows"><label class="protocol" style="display:flex;"><input type="checkbox" name="cachefile" class="input_agreement_protocol" value="'+data['chart_id']+'"><span></span></label><a class="btn" name="'+data['chart_id']+'">'+data['title']+'</a></div>'
+									$("#cachelist div.fileList").append(str)
+								}
+									
+							},
+							error: function (data) {
+								alert("上传失败！");
+							}
+						});	
+					layer.close(index);
+			});
+			optoin_embed_str="<form id='singlechart_options_form'  action='/drawchart' >"
+			     //根据样式参数配置组生成前端代码嵌入
+                for(index in data["options"]){
+					chart_optoin=data["options"][index]
+					optoin_embed_str+="<br/><label for='"+chart_optoin.name+"' >"+chart_optoin.other_name+"</label>"
+					if(chart_optoin.type=="value"){
+							optoin_embed_str+="<input name='"+chart_optoin.name+"' value='"+chart_optoin.default_value+"'/>"
+														}
+					else if(chart_optoin.type=="radio"){
+									for( radio_item_index in chart_optoin.enable_values){
+													radio_item=chart_optoin.enable_values[radio_item_index]
+													default_value_flag=""
+													if (radio_item==chart_optoin.default_value){
+																default_value_flag=" checked='true' "
+																	}
+													optoin_embed_str+="<label>"+radio_item+"</label><input type='radio'  name='"+chart_optoin.name+"'  value="+radio_item+"  "+default_value_flag+"/> "
+												}
+								}
+					else if(chart_optoin.type=="checks"){
+								for( radio_item_index in chart_optoin.enable_values){
+										radio_item=chart_optoin.enable_values[radio_item_index]
+										default_value_flag=""
+										if (radio_item==chart_optoin.default_value){
+													default_value_flag=" checked='true' "
+														}
+										optoin_embed_str+="<label>"+radio_item+"</label><input type='checkbox'  name='"+chart_optoin.name+"[]'  value='"+radio_item+"'  "+default_value_flag+"/> "
+										}
+								}
+					else if(chart_optoin.type=="range"){
+						if(chart_optoin.default_value.length==2){
+							optoin_embed_str+="from: <input name='"+chart_optoin.name+"[]'  value='"+chart_optoin.default_value[0]+"'/>"
+							optoin_embed_str+="to:  <input name='"+chart_optoin.name+"[]'  value='"+chart_optoin.default_value[1]+"'/>"
+						}
+						else if(chart_optoin.default_value.length==3){
+							optoin_embed_str+="start: <input name='"+chart_optoin.name+"[]'  value='"+chart_optoin.default_value[0]+"'/>"
+							optoin_embed_str+="middle:  <input name='"+chart_optoin.name+"[]'  value='"+chart_optoin.default_value[1]+"'/>"
+							optoin_embed_str+="end:  <input name='"+chart_optoin.name+"[]'  value='"+chart_optoin.default_value[2]+"'/>"
+						}
+							}
+					}
+			optoin_embed_str+"</form>"
+
+			$(".layui-layer-content").append(optoin_embed_str)
+				}
+		},
+		error: function (data) {
+			alert("获取参数配置失败！");
+		}
+});	
+}
+$(function () {  
+	//监听选择图表种类按钮，点击就去后端获取该图表的必要数据格式
+	$("#supporttypes").on("click","label input[type='radio']",function(){
+		var charttype = $("input[name='charttype']:checked").val();
+		$.ajax({
+			url:"/structure/",
+			type:"post",
+			data:JSON.stringify({charttype:charttype}),
+            dataType: 'json',
+            processData: false,
+            contentType: "application/json",
+			success: function (data) {
+				if(data["worning"]){
+					alert(data["worning"])
+				}
+				else{
+					dataformat=data
+					$("#datalist").children("div").remove();
+					var strtemp='<datalist id="addr">'
+					for(idx in items){
+						strtemp+='<option value="'+items[idx]+'">'+items[idx]+'</option>'
+					}
+					strtemp+='</datalist>'
+					
+					inputtemp='<br/>'
+					for(dataformatItem in dataformat){
+						inputtemp+='<label for="'+dataformatItem+'[]" class="www" >'+data[dataformatItem]+'</label><input type="text" name="'+dataformatItem+'[]" list="addr" class="ccc" /><br/>'
+						}
+					formstr='<div> <button class="btn btn-primary right" onclick="addGroup()" >添加新组</button> <button onclick="subdataformat(\''+charttype+'\')" class="btn btn-primary left" >绘制图表</button> <form id="dataformatform">'+inputtemp+strtemp+'</form></div>'
+						$("#datalist").append(formstr)
+					$("#section-6").click();
+				}
+			},
+			error:function(data){
+				
+				alert("上传失败！");
+			}
+		})
+		
+	});
+	});
+$.fn.dataTable.ext.buttons.alert = {
+    className: 'buttons-alert',
+    action: function ( e, dt, node, config ) {
+                $(".csv_dt").hide();
+            }
+};
+
+var DToptions={
+            "dom": 'Bfrtip',
+            // 开启服务器模式
+            "serverSide": true,
+            // 开启处理功能
+            "processing" : true,
+            // 允许排序
+            "orderable":true,
+            // 允许查询
+            "searching" : true,
+			//左下角信息
+			"info": true,
+             // 根据第1列降序排列
+            "order": [[0,"asc"]],
+			//浏览器缓存状态
+			"stateSave":false,
+			//是否自动计算列宽，计算列宽会花费一些时间，如果列宽通过aoColumns传递，可以关闭该属性作为优化  
+			"bAutoWidth":true,  
+			//是否延迟渲染， 
+			"bDeferRender":true, 
+            //多次实例化需要允许销毁
+            "destroy": true,
+            "retrieve":true,
+            "ajax":{"type": 'POST' ,"url": '/csv2table/',},
+			//额外参数
+			"fnServerParams": function ( aoData ) { 		
+			aoData.file=''
+			}  ,
+            // 返回数据
+            //columns: cols,
+            language: {
+					"decimal": "",//小数的小数位符号  比如“，”作为数字的小数位符号
+					"emptyTable": "没有数据哟~~",//没有数据时要显示的字符串
+					"info": "当前 _START_ 条到 _END_ 条 共 _TOTAL_ 条",//左下角的信息，变量可以自定义，到官网详细查看
+					"infoEmpty": "无记录",//当没有数据时，左下角的信息
+					"infoFiltered": "(从 _MAX_ 条记录过滤)",//当表格过滤的时候，将此字符串附加到主要信息
+					"infoPostFix": "",//在摘要信息后继续追加的字符串
+					"thousands": ",",//千分位分隔符
+					"lengthMenu": "每页 _MENU_ 条记录",//用来描述分页长度选项的字符串
+					"loadingRecords": "加载中...",//用来描述数据在加载中等待的提示字符串 - 当异步读取数据的时候显示
+					"processing": "处理中...",//用来描述加载进度的字符串
+					"search": "搜索",//用来描述搜索输入框的字符串
+					"zeroRecords": "没有找到",//当没有搜索到结果时，显示
+					"paginate": {
+					  "first": "首页",
+					  "previous": "上一页",
+					  "next": "下一页",
+					  "last": "尾页"
+					}
+				  },
+            buttons: [ {text: 'hide',extend: 'alert',}
+    ]
+
+        }
+function KetDataTable(fname,cols){
+    var DToption=Object.assign({columns:cols},DToptions)
+    DToption.ajax.data={"fname":fname}
+    $(".csv_dt").show();
+    if(lastfile!=fname){
+        lastfile=fname
+        if(dt){
+            console.log("destroy");
+            dt.clear();
+            dt.destroy();
+            $(".csv_dt table#CSVTable").empty();
+            console.log($(".csv_dt table#CSVTable"));
+            $("#CSVTable").remove()
+            $("div.right-body div.csv_dt").append("<table id='CSVTable'></table>")
+        }
+    try {
+            dt=$(".csv_dt #CSVTable").dataTable(DToption).api();
+        } catch(err) {
+            console.log(err);
+//        window.location.reload(true);
+}
+    }
+
+}
+$(function () {
+    //监听数据文件的单击事件，点击时就是选择csv文件准备绘图或者 npy文件准备加工成csv文件
+	$("body").on("click","#fileslist div.rows a:nth-child(2)",function(){
+		var that =$(this)
+		var selected_name=$(this).text()
+		var data=JSON.stringify({selected_name:selected_name})
+		$.ajax({
+			url:"/select/",
+			type:"post",
+			data: data,
+            dataType: 'json',
+            processData: false,
+            contentType: "application/json",
+			success: function (data) {
+				if(data["worning"]){
+					alert(data["worning"])
+				}
+				else{
+					if(data["uptype"]=="csv"){
+					$("#datalist").children("div").remove()
+					items=data["items"]
+					$('#section-4').click();
+                    setTimeout(function() {KetDataTable(selected_name,data['cols'])}, 1000);
+                    
+					}
+					else if(data["uptype"]=="npy"){
+						var tm=data["tensor_model"]
+						var operations=data["operations"]
+                        var shape=tm["info"][0] 
+                        var ndimaxis=tm["info"][1]
+                        //构建浮动层
+						np_prompt();
+                        loadingrep(operations);
+                        changenp(tm["keyid"],shape,ndimaxis)//添加当前np
+                        npinfo[tm["keyid"]]={"shape":shape,"ndimaxis":ndimaxis}
+                        ajaxgetM(tm["keyid"]);
+					}
+				}
+				
+			},
+			error: function (data) {
+				
+				alert("上传失败！");
+
+			}
+		});	
+	})		
+}); 
+$(function () {
+    //监听临时图表的单击事件，点击就是加载缓存的前端代码，直接在前端绘制图表
+	$("body").on("click","#cachelist .fileList a",	function(){
+		var that =$(this)
+		selected_name=$(this).attr('name')
+		data=JSON.stringify({cachechart_id:selected_name})
+		$.ajax({
+			url:"/cachechart/",
+			type:"post",
+			data:data,
+            dataType: 'json',
+            processData: false,
+            contentType: "application/json",
+			success: function (data) {
+				if(data["worning"]){
+					alert(data["worning"])
+				}
+				else{
+					for (i in data["script_list"]){
+						var src=data['host']+"/"+data['script_list'][i]+".js"
+						if($("head script[src='"+src+"']").length==0){
+						var script="<script src='"+src+"'/>"
+						$("head").append(script)
+						}
+					}
+		            
+				$("#chartscontainer").append("<div class='item'> "+data["echart"]+"</div>");
+				check_carousel();
+				}
+				
+			},
+			error: function (data) {
+				
+				alert("上传失败！");
+
+			}
+		});	
+	})		
+}); 
+    
+//菜单栏的选择和释放
+$(document).ready(function(){
+    var old = null; //用来保存原来的对象
+    $(".section input[type='radio']").each(function(){//循环绑定事件
+        if(this.checked){
+            old = this; //如果当前对象选中，保存该对象
+        }
+    this.onclick = function(){
+        if(this == old){//如果点击的对象原来是选中的，取消选中
+            this.checked = false;
+            old = null;
+        } else{
+            old = this;
+        }
+    }
+});
+});
+
+</script>
+<script type="text/javascript" name="delchart">
+
+//删除文件
+function del_files(fileport){
+	var delfiles=[];
+    $("#"+fileport+" input:checked").each(function(i){
+    	delfiles[i] = $(this).val();
+    });
+    if(delfiles.length==0) return
+    
+	var mymessage=confirm("确认删除");
+	if(mymessage==true){
+		$.ajax({
+			url:"/delfiles/",
+			type:"post",
+			data:JSON.stringify({file_port:fileport,del_files:delfiles}),
+            dataType: 'json',
+            processData: false,
+            contentType: "application/json",
+			success: function (data) {
+				if(data["worning"]){
+					alert(data["worning"])
+				}
+				else{
+					if(fileport=='cachelist'){
+						$("#"+fileport+" input[name='cachefile']:checked").each(function(){
+							$("#"+$(this).val()).parent("div.item").remove()
+						});
+						check_carousel()
+					}
+					$("#"+fileport).find("input:checked").parent("label").remove();
+					for(idx in delfiles){
+						$("#"+fileport).find("a[name='"+delfiles[idx]+"']").remove();
+					}
+				}
+				
+			},
+			error: function (data) {
+				
+				alert("上传失败！");
+
+			}
+		});
+	}
+}
+
+
+//刷新轮播栏《跳转指定图表，隐藏其他图表，同步导航》
+function check_carousel(){
+    $(".csv_dt").hide();
+	length=$("#chartscontainer div.item").length
+	$(".carousel-indicators").find("li").remove()
+	if(length>0){	
+		last_index=length-1
+		for(index=0;index<length;index++){
+			var tempstr=""
+			if(index==last_index) tempstr=' class="active" ';
+			$(".carousel-indicators").append('<li data-target="#myCarousel" data-slide-to="'+index+'" '+tempstr+'></li>')	
+				}
+		$("#chartscontainer div.item").each(function(){$(this).removeClass("active")})
+		$("#chartscontainer").find("div.item:eq("+last_index+")").addClass("active")
+	}
+}
+
+//定制组图时的浮动层，
+function conform_charts(customtype){
+	var conformcharts=[];
+	$("input[name='cachefile']:checked").each(function(i){
+		conformcharts[i] = $(this).val();
+	});
+	if(conformcharts.length==0) return
+	layer.prompt({
+		formType: 2,
+		value: '初始标题',
+		placeholder: '输入标题',
+		title: '详细配置',
+		area: ['200px', '30px'] 
+		} ,
+		function(value, index, elem){
+			var formdata=$("#customchart_options_form").serializeJSON();  
+			$.ajax({
+				url:"/conformchart/",
+				type:"post",
+				data:JSON.stringify({conform_charts:conformcharts,customtype:customtype,options:formdata}),
+				processData: false,
+				dataType: 'json',
+				contentType: "application/json",
+				success: function (response, status, request) {
+					if(response["worning"]){
+						alert(response["worning"])
+					}
+					else{
+						alert(response['customfileurl'])
+						var chartsname=response['customfileurl'].split("/")
+						pagename=chartsname[chartsname.length-1]
+						$("#chartslist div.fileList").append("<div class='rows'><label class='protocol' style='display:flex;'><input type='checkbox' class='input_agreement_protocol' name='chartsfile'  value='"+pagename+"'><span></span></label><a class='btn' name='"+pagename+"' target='_blank' href='"+response['customfileurl']+"'>"+pagename+"</a></div>")
+						
+					}
+					
+				},
+				error: function (data) {
+					
+					alert("上传失败！");
+
+				}
+			});
+			layer.close(index);
+			});
+	common_custom_options="<form id='customchart_options_form'  action='/drawchart' >"
+	common_custom_options+="<br/><label for='page_title' >页面标题</label><input name='page_title' value='PAGE_TITLE'/>"
+	if(customtype!='page'){
+		common_custom_options+="<br/><label for='width' >页面宽度</label><input name='width' value='1600'/>"
+		common_custom_options+="<br/><label for='height' >页面高度</label><input name='height' value='800'/>"
+	}
+	if(customtype=='timeline'){
+		common_custom_options+="<br/><label for='is_auto_play' >自动播放</label><input type='checkbox' class='switch ck' name='is_auto_play' value='true' checked />"
+		common_custom_options+="<br/><label for='is_loop_play' >循环播放</label><input type='checkbox' class='switch ck' name='is_loop_play' value='true' checked />"
+		common_custom_options+="<br/><label for='is_rewind_play' >倒带播放</label><input type='checkbox' class='switch ck' name='is_rewind_play' value='true' checked/>"
+		common_custom_options+="<br/><label for='is_timeline_show' >隐藏时间线</label><input type='checkbox' class='switch ck' name='is_timeline_show' value='false' checked />"
+		common_custom_options+="<br/><label for='timeline_play_interval' >时间间隔</label><input type='number' name='timeline_play_interval' value='1000'  />"
+		common_custom_options+="<br/><label for='timeline_top' >时间线位置</label><input type='text' name='timeline_top' value='bottom' /> "		
+			for(i in conformcharts){
+				common_custom_options+="<br/><label for='time_point' >时间标签："+conformcharts[i].substring(0,4)+"..</label><input name='"+conformcharts[i]+"[time_point]'  />"
+				
+			}
+	}
+	if(customtype=='overlap'){
+		for(i in conformcharts){	
+			common_custom_options+="<br/><label for='extra_xaxis' >添加x轴"+conformcharts[i].substring(0,4)+"..</label><input type='checkbox' class='switch' name='"+conformcharts[i]+"[extra_xaxis]' value='true' />"		
+			common_custom_options+="<br/><label for='extra_yaxis' >添加y轴"+conformcharts[i].substring(0,4)+"..</label><input type='checkbox' class='switch' name='"+conformcharts[i]+"[extra_yaxis]' value='true' />"		
+		}
+	}
+	else if(customtype=='grid'){
+		for(i in conformcharts){
+			common_custom_options+="<br/><label for='grid_width' >宽度："+conformcharts[i].substring(0,4)+"..</label><input name='"+conformcharts[i]+"[grid_width]'  />"
+			common_custom_options+="<label for='grid_height' >高度："+conformcharts[i].substring(0,4)+"..</label><input name='"+conformcharts[i]+"[grid_height]'  />"
+			common_custom_options+="<br/><label for='grid_left' >水平定位："+conformcharts[i].substring(0,4)+"..</label><input name='"+conformcharts[i]+"[grid_left]'  />"
+			common_custom_options+="<label for='grid_top' >竖直定位："+conformcharts[i].substring(0,4)+"..</label><input name='"+conformcharts[i]+"[grid_top]' />"
+			
+		}
+	}
+	common_custom_options+="</form>" 
+	$(".layui-layer-content").append(common_custom_options)
+	$(".switch").each(function(){
+		if($(this).attr('checked')=="checked") 
+			$(this).bootstrapSwitch('state',true);
+		else 
+			$(this).bootstrapSwitch('state',false);
+	})
+	
+	        
+}
+
+
+//简单运算
+function dataprocess(mathpro,filename,chart_id){
+	var this_chart=eval('myChart_'+chart_id)
+	var this_title=this_chart._model.option.title[0].text
+	var selected_indices=this_chart._model._seriesIndices
+	selected_items=[]
+	for ( idx in  selected_indices){
+		selected_items.push(this_chart._model.option.series[selected_indices[idx]].name)
+	}
+		$.ajax({
+				url:"/dataprocess/",
+				type:"post",
+				data:JSON.stringify({mathpro:mathpro,filename:filename,values:selected_items,title:this_title}),
+				dataType: 'json',
+				processData: false,
+				contentType: "application/json",
+				success: function (data) {
+					if(data["worning"]){
+						alert(data["worning"])
+					}
+					else{
+						index=$("#chartscontainer div.item").length
+						$(".carousel-indicators li.active").each(function(){$(this).removeClass("active")})
+						$(".carousel-indicators").append('<li data-target="#myCarousel" data-slide-to="'+index+'" class="active"></li>')
+						$("#chartscontainer div.item").each(function(){$(this).removeClass("active")})
+						$("#chartscontainer").append("<div class='item active'> "+data["echart"]+"</div>")
+						str='<div class="rows"><label class="protocol" style="display:flex;"><input type="checkbox" name="cachefile" class="input_agreement_protocol" value="'+data['chart_id']+'"><span></span></label><a class="btn" name="'+data['chart_id']+'">'+data['title']+'</a></div>'
+						$("#cachelist div.fileList").append(str)
+						check_carousel();
+					}
+				},
+				error: function (data) {
+					
+					alert("上传失败！");
+				}
+			});	
+}
+</script>
+{% endblock %}
