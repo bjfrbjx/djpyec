@@ -32,7 +32,7 @@ def getCustom_chart(customtype):
     """
     return custom_chart.get(customtype.lower(),None)
 
-def page_custom_chart(single_chart_ids,chart_renders,**kwargs):
+def page_custom_chart(chart_renders,**kwargs):
     """ 
     顺序组图：
       @single_chart_ids :  选择的单图id
@@ -40,8 +40,7 @@ def page_custom_chart(single_chart_ids,chart_renders,**kwargs):
       return 根据id找到对应渲染器，通过pyecharts的顺序组图生成器-page 生成这些单图的顺序组图
     """
     page=Page(page_title=kwargs.get("page_title","PAGE_TITLE"))
-    for single_chart_id in single_chart_ids:
-        single_chart=chart_renders.get(single_chart_id,None)
+    for _,single_chart in chart_renders.items():
         if single_chart:
             page.add(single_chart)
         else:
@@ -49,7 +48,7 @@ def page_custom_chart(single_chart_ids,chart_renders,**kwargs):
     return page
 
 
-def grid_custom_chart(single_chart_ids,chart_renders,**kwargs):
+def grid_custom_chart(chart_renders,**kwargs):
     """ 
     并行组图：
       @single_chart_ids :  选择的单图id
@@ -61,12 +60,12 @@ def grid_custom_chart(single_chart_ids,chart_renders,**kwargs):
     container_width=float(kwargs.get("width",WIDTH))
     container_height=float(kwargs.get("height",HEIGHT))
     grid=Grid(page_title=kwargs.get("page_title","PAGE_TITLE"),width=container_width,height=container_height)
-    chartsnum=len(single_chart_ids)
+    chartsnum=len(chart_renders)
     auto_width=container_width/(chartsnum//2)-(chartsnum//2)*INTERVAL
     auto_height=container_height/2-INTERVAL
         
-    for idx,single_chart_id in enumerate(single_chart_ids):
-        single_chart=chart_renders.get(single_chart_id,None)
+    for idx,single_chart_id in enumerate(chart_renders.keys()):
+        single_chart=chart_renders.get(single_chart_id)
         if single_chart:
             if not ck_enable_grid(single_chart):
                 raise DrawChartException("grid仅支持Line,Bar,Kline,Scatter,EffectScatter,HeatMap,pie")
@@ -125,7 +124,7 @@ def grid_custom_chart(single_chart_ids,chart_renders,**kwargs):
             raise DrawChartException("服务器未找到图表,可能已被删除")
     return grid
 
-def overlap_custom_chart(single_chart_ids,chart_renders,**kwargs):
+def overlap_custom_chart(chart_renders,**kwargs):
     """ 
     叠加组图：
       @single_chart_ids :  选择的单图id
@@ -137,8 +136,7 @@ def overlap_custom_chart(single_chart_ids,chart_renders,**kwargs):
     container_height=float(kwargs.get("height",HEIGHT))
     overlap=Overlap(page_title=kwargs.get("page_title","PAGE_TITLE"),width=container_width,height=container_height)
     x,y=0,0
-    for single_chart_id in single_chart_ids:
-        single_chart=chart_renders.get(single_chart_id,None)
+    for single_chart_id,single_chart in chart_renders.items():
         if single_chart:
             if not single_chart._option.get("xAxis"):
                 raise DrawChartException("overlap ,只能叠加有xy轴的图表")
@@ -168,7 +166,7 @@ def overlap_custom_chart(single_chart_ids,chart_renders,**kwargs):
     return overlap
 
 
-def timeline_custom_chart(single_chart_ids,chart_renders,**kwargs):
+def timeline_custom_chart(chart_renders,**kwargs):
     """
     时间轮播组图：
       @single_chart_ids :  选择的单图id
@@ -186,11 +184,10 @@ def timeline_custom_chart(single_chart_ids,chart_renders,**kwargs):
     container_width=float(kwargs.pop("width",WIDTH))
     container_height=float(kwargs.pop("height",HEIGHT))
     single_option={}
-    for i in single_chart_ids:
+    for i in chart_renders.keys():
         single_option[i]=kwargs.pop(i,None)
     timeline=Timeline(page_title=page_title,width=container_width,height=container_height,**kwargs)
-    for single_chart_id in single_chart_ids:
-        single_chart=chart_renders.get(single_chart_id,None)
+    for single_chart_id,single_chart in chart_renders.items():
         if single_chart:
             single_chart._option.pop("toolbox",None)
             if single_option[single_chart_id]:
@@ -227,7 +224,7 @@ def str2bool(strlist):
         del strlist[rmkey]
     return strlist
 
-def DrawCustomChart(single_chart_ids,chart_renders,customtype='page',**kwargs):
+def DrawCustomChart(chart_renders,customtype='page',**kwargs):
     """
        组图选择器：根据customtype选择组图
            @customtype : 组图类型，pyecharts有四种
@@ -237,15 +234,15 @@ def DrawCustomChart(single_chart_ids,chart_renders,customtype='page',**kwargs):
           生成组图后渲染出网页代码，保存到服务器硬盘并返回相对路径
     """
     if customtype=='page':
-        CustomChart= page_custom_chart(single_chart_ids,chart_renders,**kwargs)
+        CustomChart= page_custom_chart(chart_renders,**kwargs)
     elif customtype=='grid':
-        CustomChart= grid_custom_chart(single_chart_ids, chart_renders,**kwargs)
+        CustomChart= grid_custom_chart(chart_renders,**kwargs)
                 
     elif customtype=="overlap":
-        CustomChart= overlap_custom_chart(single_chart_ids, chart_renders,**kwargs)
+        CustomChart= overlap_custom_chart(chart_renders,**kwargs)
                 
     elif customtype=="timeline":
-        CustomChart= timeline_custom_chart(single_chart_ids,chart_renders,**kwargs)
+        CustomChart= timeline_custom_chart(chart_renders,**kwargs)
             
     userdir=path.join(MEDIA_ROOT,"download",chart_renders["user_name"])
     if not path.exists(userdir):

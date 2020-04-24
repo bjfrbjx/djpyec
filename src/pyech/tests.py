@@ -1,3 +1,8 @@
+import random
+from pyecharts.conf import configure
+from pyecharts.charts.scatter import Scatter
+from pyecharts.charts.scatter3D import Scatter3D
+from pyecharts.charts.line3D import Line3D
 print("-success-")
 # from pyecharts.conf import configure
 # configure(jshost="http://127.0.0.1:8080/static/JS/",force_js_embed=False)
@@ -11,43 +16,39 @@ print("-success-")
 # Create your tests here.
 
 import math
-
+# configure(jshost="127.0.0.1:8080/static/JS/",force_js_embed=False)
 from pyecharts import Surface3D
 
 
 def create_surface3d_data():
-    for t0 in range(-60, 60, 1):
-        y = t0 / 60
-        for t1 in range(-60, 60, 1):
-            x = t1 / 60
-            if math.fabs(x) < 0.1 and math.fabs(y) < 0.1:
-                z = '-'
-            else:
-                z = math.sin(x * math.pi) * math.sin(y * math.pi)
-            yield [x, y, z]
+    return [[3,5,3,1],[5,3,7,2],[8,1,6,3]]
+#     for t0 in range(-60, 60, 1):
+#         y = t0 / 60
+#         for t1 in range(-60, 60, 1):
+#             x = t1 / 60
+#             if math.fabs(x) < 0.1 and math.fabs(y) < 0.1:
+#                 z = '-'
+#             else:
+#                 z = math.sin(x * math.pi) * math.sin(y * math.pi)
+#             yield [x, y, z,random.random()]
 
-range_color = [
-    "#313695",
-    "#4575b4",
-    "#74add1",
-    "#abd9e9",
-    "#e0f3f8",
-    "#ffffbf",
-    "#fee090",
-    "#fdae61",
-    "#f46d43",
-    "#d73027",
-    "#a50026",
-]
+range_color = ['#50a3ba', '#eac763', '#d94e5d']
 
-_data = list(create_surface3d_data())
-surface3d = Surface3D("3D 曲面图示例", width=1200, height=600)
-surface3d.add(
-    "",
-    _data,
-    is_visualmap=True,
-    visual_range_color=range_color,
-    visual_range=[-3, 3],
-    grid3d_rotate_sensitivity=5,
-)
-surface3d.render(path="/home/hxy/桌面/surface3d.html")
+if __name__=="__main__":
+    _data = list(create_surface3d_data())
+    print(len(_data),_data[:10])
+    surface3d = Scatter3D("3D 曲面图示例", width=1200, height=600)
+    # 指定visual_dimension就覆盖visual_range为维度的上下限
+    surface3d.add(
+        "",
+        _data,
+        is_visualmap=True,
+        visual_dimension=1,
+        visual_type="size",
+        #visual_range_color=range_color,
+        visual_range_size=[5,10],
+        visual_range_text=['a','b'],
+        #visual_range=[3, 5],
+        grid3d_rotate_sensitivity=1,
+    )
+    surface3d.render(path="E:\桌面\Desktop\surface3d.html")

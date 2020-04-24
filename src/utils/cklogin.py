@@ -9,7 +9,12 @@ from django.shortcuts import redirect
 from djpyec.settings import LOGIN_URL ,WORK_URL
 import pandas
 import chardet
-
+from django.core.cache import cache
+from pyech.models import CacheChartRender
+from login.models import User
+import pickle
+import sys
+from utils.drawchart import DrawChartException
 def login_required(view_func):
     """
         登录检测函数，后面只要@login_required 就能在回应请求前检测用户是否已经登录，否则转到登陆页面
@@ -52,3 +57,41 @@ def getcsvinfo(fullfilename):
         return res
     else:
         return "无法获取"
+
+def delsingle_CR(session,fnames):
+    print("del ",fnames)
+    for fname in fnames:
+        if session.get("work_book") and session["work_book"].filename==fname:
+            del session["work_book"]
+        elif cache.has_key(session["user_name"]+"::"+fname):
+            cache.expire(session["user_name"]+"::"+fname,0)
+        else:
+            print("没有该文件的图表")
+def getCacheChartRenders(userid,username,instance=False,chartids=None):
+    """
+    @instance：是实例化还是仅仅取用title
+    @chartids：筛选部分图表的id
+    """
+    chart_renders={"user_name":username} if instance else []
+    content="chartrender_text"  if instance else  "charttitle"
+    kwargs={"author":User.objects.get(id=userid)}
+    if chartids and isinstance(chartids, list):
+        kwargs.update({"chartid__in":chartids})
+    CCRs=CacheChartRender.objects.filter(**kwargs).values_list("chartid",content)
+    if instance:
+        for ccr in CCRs:
+            chart_renders[ccr[0]]=pickle.loads(ccr[1])
+    else:
+        for ccr in CCRs:
+            
+            chart_renders.append({"chartid":ccr[0],"charttitle":ccr[1]})
+    return chart_renders
+
+def getCacheChart(userid,chartid):
+    try:
+        chartobjORM=CacheChartRender.objects.get(author=User.objects.get(id=userid),chartid=chartid)
+        return pickle.loads(chartobjORM.chartrender_text)
+    except CacheChartRender.DoesNotExist:
+        raise DrawChartException("临时图表丢失")
+    
+    

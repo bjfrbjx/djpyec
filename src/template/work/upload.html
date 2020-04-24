@@ -301,7 +301,7 @@ $(function () {
 var items=[]
 var dataformat=[]
 var inputtemp=''
-
+var workchartsid=[]
 //添加图表的必要数据格式组
 function addGroup(){
 	$("#dataformatform").append(inputtemp);
@@ -371,6 +371,7 @@ function subdataformat(charttype){
 										buttons_str+="<button class='btn btn-success btn-rounded' onclick=\"dataprocess('sum','"+data['file_name']+"','"+data['chart_id']+"')\">总和</button>"
 									}
 									$("#chartscontainer").append("<div class='item'> "+buttons_str+data["echart"]+"</div>");
+                                    workchartsid.push(data["chart_id"])
 									check_carousel();
 									str='<div class="rows"><label class="protocol" style="display:flex;"><input type="checkbox" name="cachefile" class="input_agreement_protocol" value="'+data['chart_id']+'"><span></span></label><a class="btn" name="'+data['chart_id']+'">'+data['title']+'</a></div>'
 									$("#cachelist div.fileList").append(str)
@@ -559,10 +560,12 @@ function KetDataTable(fname,cols){
     }
 
 }
+    
+    
+    
 $(function () {
     //监听数据文件的单击事件，点击时就是选择csv文件准备绘图或者 npy文件准备加工成csv文件
 	$("body").on("click","#fileslist div.rows a:nth-child(2)",function(){
-		var that =$(this)
 		var selected_name=$(this).text()
 		var data=JSON.stringify({selected_name:selected_name})
 		$.ajax({
@@ -610,9 +613,12 @@ $(function () {
 $(function () {
     //监听临时图表的单击事件，点击就是加载缓存的前端代码，直接在前端绘制图表
 	$("body").on("click","#cachelist .fileList a",	function(){
-		var that =$(this)
-		selected_name=$(this).attr('name')
-		data=JSON.stringify({cachechart_id:selected_name})
+		selected_id=$(this).prop('name')
+        if(workchartsid.includes(selected_id) ) {
+            console.log("in")
+            $('.carousel-indicators li[data-slide-to="'+workchartsid.indexOf(selected_id)+'"]').click()
+            return false;}
+		data=JSON.stringify({cachechart_id:selected_id})
 		$.ajax({
 			url:"/cachechart/",
 			type:"post",
@@ -634,6 +640,7 @@ $(function () {
 					}
 		            
 				$("#chartscontainer").append("<div class='item'> "+data["echart"]+"</div>");
+                workchartsid.push(selected_id);
 				check_carousel();
 				}
 				
@@ -697,8 +704,9 @@ function del_files(fileport){
 						check_carousel()
 					}
 					$("#"+fileport).find("input:checked").parent("label").remove();
+                    workchartsid = workchartsid.filter(function(item) {return !delfiles.includes(item);});
 					for(idx in delfiles){
-						$("#"+fileport).find("a[name='"+delfiles[idx]+"']").remove();
+						$("#"+fileport).find("a[name='"+delfiles[idx]+"']").parent("div.rows").remove();
 					}
 				}
 				

@@ -8,7 +8,6 @@ from TensorLib import tools
 from pandas import Series ,DataFrame,concat
 import copy
 import re
-from joblib.parallel import delayed
 from utils.drawchart import DrawChartException, single_chartrender
 import uuid
 import os
@@ -610,47 +609,47 @@ Oprfuncs={
 }
 
 
-def select_npy(request,data):
+def select_npy(session,selectedName):
     """
     选取npy文件
     """
     Tensorcase=None
     key="NP"+str(uuid.uuid4())
-    realpath=os.path.join(MEDIA_ROOT,"upload",request.session["user_name"],data["selected_name"])
+    realpath=os.path.join(MEDIA_ROOT,"upload",session["user_name"],selectedName)
     np_array=numpy.load(realpath).squeeze()
     tm=TensorModel(np_array)
-    request.session["npy_book"]={key:tm}
+    session["npy_book"]={key:tm}
     ast={"keyid":key,"info":[tm.shape,tm.ndimaxis]}
     return {"tensor_model":ast,"operations":list(Oprfuncs.keys()),"uptype":"npy"}
     
     
-def select_csv(request,data,refresh=False):
+def select_csv(session,selectedName,refresh=False):
     """
     选取csv文件
     @refresh: 刷新缓存，当文件内容更改时，需要刷新
     """
     print("select_csv")
     if refresh is False:
-        if request.session.get("work_book",False) and request.session["work_book"].filename==data["selected_name"]:
-            return {"items":request.session["work_book"].getColumns(),"uptype":"csv"}
+        if session.get("work_book",False) and session["work_book"].filename==selectedName:
+            return {"items":session["work_book"].getColumns(),"uptype":"csv"}
         
         single_CR=None
-        key=request.session["user_name"]+"::"+data["selected_name"]
+        key=session["user_name"]+"::"+selectedName
         if cache.has_key(key):
             single_CR=pickle.loads(cache.get(key))
             cache.expire(key,60)
-        elif request.session.get("work_book",None) is not None:
-            oldpkstr=pickle.dumps(request.session["work_book"])
-            old_work_bookkey=request.session["user_name"]+"::"+request.session["work_book"].filename
+        elif session.get("work_book",None) is not None:
+            oldpkstr=pickle.dumps(session["work_book"])
+            old_work_bookkey=session["user_name"]+"::"+session["work_book"].filename
             cache.set(old_work_bookkey,oldpkstr,60*5)
-            single_CR=single_chartrender(MEDIA_ROOT,request.session["user_name"],data["selected_name"])
+            single_CR=single_chartrender(MEDIA_ROOT,session["user_name"],selectedName)
             pkstr=pickle.dumps(single_CR)
             cache.set(key,pkstr,60*5)
         else:
-            single_CR=single_chartrender(MEDIA_ROOT,request.session["user_name"],data["selected_name"])
+            single_CR=single_chartrender(MEDIA_ROOT,session["user_name"],selectedName)
     else:
-        single_CR=single_chartrender(MEDIA_ROOT,request.session["user_name"],data["selected_name"])
-    request.session["work_book"]=single_CR
+        single_CR=single_chartrender(MEDIA_ROOT,session["user_name"],selectedName)
+    session["work_book"]=single_CR
     cols=[{"data":c,"title":c} for c in single_CR.dataframe.columns]
     print(cols)
     return {"items":single_CR.getColumns(),"uptype":"csv","cols":cols}

@@ -365,8 +365,14 @@ def bar3ddataformattranst(clientdatadict):
             "data":list(zip(index_x,index_y,clientdatadict["value"])) 
             }
 def heatmapdataformattranst(clientdatadict):
-    index_x=[ clientdatadict["x_axis"].index(i) for i in clientdatadict["x"]]
-    index_y=[ clientdatadict["y_axis"].index(i) for i in clientdatadict["y"]]
+    if isinstance(clientdatadict["x"][0],int):
+        index_x=clientdatadict["x"]
+    else:
+        index_x=[ clientdatadict["x_axis"].index(i) for i in clientdatadict["x"]]
+    if isinstance(clientdatadict["y"][0],int):
+        index_y=clientdatadict["y"]
+    else:
+        index_y=[ clientdatadict["y_axis"].index(i) for i in clientdatadict["y"]]
     return (clientdatadict.get("name",""),
             clientdatadict["x_axis"],
             clientdatadict["y_axis"],

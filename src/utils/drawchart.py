@@ -11,6 +11,7 @@ from datetime import datetime
 from utils.generatechartoptions import Dataformats
 import chardet
 import copy
+from pyecharts.charts.radar import Radar
 # 单图画布长宽
 canvas_width=800
 canvas_height=400
@@ -37,6 +38,17 @@ class single_chartrender:
         self.__dataformat=Dataformats.get(charttype,None)
         return self.__dataformat   
     
+    def __draw(self,ChartCls,final_dataformats,final_options,**clsoptions):
+        chartobj=ChartCls(**clsoptions)
+        for dataformat in final_dataformats:
+            if ChartCls==Radar:
+                schema=dataformat.pop('schema')
+                chartobj.config(schema=schema)
+            if type(dataformat)==dict:
+                chartobj.add(**dataformat,**final_options)
+            else:
+                chartobj.add(*dataformat,**final_options)
+        return chartobj
     def drawchart(self,charttype="bar",dataformats=None,options=None,title=""):
         """
         $根据charttype绘制单图
@@ -58,19 +70,13 @@ class single_chartrender:
         options=tmparams
         if options.get("funnel_gap", None) is not None:
             options["funnel_gap"]=float(options["funnel_gap"])
-        chartobj=ChartCls(title,width=canvas_width,height=canvas_height,title_pos="left")
+        
         if charttype in ["bar","line"] and len(dataformats)*len(dataformats[0]['x_axis'])>20:
             options.update(is_datazoom_show=True)
-        
-        for dataformat in dataformats:
-            if charttype=='radar':
-                schema=dataformat.pop('schema')
-                chartobj.config(schema=schema)
-            if type(dataformat)==dict:
-                chartobj.add(**dataformat,**options)
-            else:
-                chartobj.add(*dataformat,**options)
-        return chartobj
+        clsoptions=dict(title=title,width=canvas_width,height=canvas_height,title_pos="left")
+        return self.__draw(ChartCls, dataformats, options,**clsoptions) 
+        # ,dict(ChartCls=ChartCls, dataformats=dataformats, options=options,clsoptions=clsoptions)
+
     
     def __check_dataformats(self,dataformats):
         '''

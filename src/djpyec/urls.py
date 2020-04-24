@@ -7,7 +7,6 @@ from .settings import MEDIA_ROOT
 from utils.cklogin import myserve
 from pyech.views import npy2df, nparray_opr
 urlpatterns = [
-    path('test/',pyech.views.test),
     path('csv2table/',pyech.views.csv2table),
     path('admin/', admin.site.urls),
     path('delfiles/',pyech.views.delfiles),

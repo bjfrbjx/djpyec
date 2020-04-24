@@ -72,6 +72,11 @@
 
 }
 
+.csv_dt{
+	height:100%;
+	
+}
+
 .accordion .section .content > li {
     padding-left: 106px; !important
 }

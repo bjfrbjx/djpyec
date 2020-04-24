@@ -5,7 +5,8 @@ import json
 from utils.drawchart import single_chartrender,DrawChartException
 import os
 from django.shortcuts import render,redirect
-from utils.cklogin import login_required, getcsvinfo
+from utils.cklogin import login_required, getcsvinfo, delsingle_CR,\
+    getCacheChartRenders,  getCacheChart
 import pickle
 import math
 from .models import User,UploadFile,CustomChartFile
@@ -26,13 +27,23 @@ import traceback
 from fileinput import filename
 from django.views.decorators.csrf import csrf_exempt
 from pandas.core.series import Series
+from pyech.models import CacheChartRender
 ECHARTS_REMOTE_HOST = HOST+STATIC_URL+"JS"
 
 from django.core.cache import cache
 
 
-def test(request):
-    return render(request,'test.html',{})
+
+
+"""
+session  
+    @work_book : 存放用户当前使用的单文件渲染工厂对象
+    @user_name : 用户名
+    @user_id   : 用户id
+    @npy_book  : 加工npy文件产生的临时数据文件
+    @chart_render: 存放用户的单图渲染器，既临时图表<体积明显小于导出的代码文本>
+
+"""
 @login_required        
 def demo3d(request):
     """
@@ -101,16 +112,8 @@ def workon(request):
             os.makedirs(usrechartfilesdir)
         else:
             chartsfiles=[i for i in os.listdir(usrechartfilesdir)]
-        if not request.session.get("chart_renders",None):
-            user_cachefile=os.path.join(MEDIA_ROOT,'cache',request.session.get('user_name'))
-            with open(user_cachefile,'ab+') as cf:
-                try :
-                    cf.seek(0,0)
-                    request.session["chart_renders"]=pickle.load(cf)
-                except :
-                    request.session["chart_renders"]={"user_name":request.session["user_name"]}
-        temp=[{"charttitle":chartobj._option["title"][0]["text"],"chartid":chartobj._chart_id} for chartobj in request.session["chart_renders"].values() if isinstance(chartobj, Chart)]
-                
+        temp=getCacheChartRenders(request.session["user_id"],request.session["user_name"]) 
+        print(temp)               
         return render(request,"work/upload.html",{"files":datafiles,
                                                   "chartsfiles":chartsfiles,
                                                   "username":request.session["user_name"] ,
@@ -205,7 +208,7 @@ def npy2df(request):
             upfile.save()
             useruploaddir=os.path.join(MEDIA_ROOT,"upload",request.session["user_name"])
             result={"files":[i for i in os.listdir(useruploaddir)]}
-            result.update(select_csv(request, {'selected_name':name+".csv"},refresh=True))
+            result.update(select_csv(request.session, name+".csv",refresh=True))
             return JsonResponse(result,safe=False)
         except Exception as e:
             traceback.print_exc()
@@ -228,9 +231,9 @@ def select(request):
         data=json.loads(request.body.decode())
         try:
             if data["selected_name"].endswith(".csv"):
-                result=select_csv(request, data)
+                result=select_csv(request.session, data["selected_name"])
             elif data["selected_name"].endswith(".npy"):
-                result=select_npy(request,data)
+                result=select_npy(request.session,data["selected_name"])
             return JsonResponse(result,safe=False)
         except Exception as e:
             
@@ -275,20 +278,14 @@ def draw(request):
             data["options"]=str2bool(data["options"])
             single_CR=request.session["work_book"]
             chartobj=single_CR.drawchart(charttype=data['charttype'],dataformats=data['dataformats'],options=data["options"],title=data["title"])
-            if not request.session.get("chart_renders",None):
-                request.session["chart_renders"]={"user_name":request.session["user_name"]}
-            request.session["chart_renders"].update({chartobj._chart_id:chartobj})
-            request.session.save()
-            user_cachefile=os.path.join(MEDIA_ROOT,'cache',request.session.get('user_name'))
-            with open(user_cachefile,'wb+') as cf:
-                pickle.dump(request.session["chart_renders"],cf)
+            CacheChartRender.objects.create(author=User.objects.get(id=request.session["user_id"]),chartid=chartobj._chart_id,chartrender_text=pickle.dumps(chartobj)).save()
             context= dict(
                 echart=chartobj.render_embed(),
                 chart_id=chartobj._chart_id,
                 script_list=chartobj.get_js_dependencies(),
                 title=chartobj._option["title"][0]["text"],
-                file_name=single_CR.filename)
-            context.update(host=ECHARTS_REMOTE_HOST)
+                file_name=single_CR.filename,
+                host=ECHARTS_REMOTE_HOST)
             return JsonResponse(context,safe=False)   
         except DrawChartException as e:
             errormsg.update(worning=e.wornning())
@@ -308,7 +305,8 @@ def conformchart(request):
         try:
             data=json.loads(request.body.decode())
             data["options"]=str2bool(data["options"])
-            customchartfilepath=DrawCustomChart(data["conform_charts"], request.session["chart_renders"], data["customtype"],**data["options"])
+            chart_renders=getCacheChartRenders(request.session["user_id"],request.session["user_name"],instance=True,chartids=data["conform_charts"])
+            customchartfilepath=DrawCustomChart( chart_renders, data["customtype"],**data["options"])
             CCF=CustomChartFile(author=User.objects.get(id=request.session["user_id"]),ChartPath=customchartfilepath)
             CCF.save()
             charturl=os.path.join(MEDIA_URL,customchartfilepath)
@@ -347,11 +345,9 @@ def  dataprocess(request):
                 single_CR=request.session["work_book"]
             else:
                 single_CR=single_chartrender(MEDIA_ROOT,request.session["user_name"],data["filename"])
-            print(data)
             chartobj=single_CR.mathpro(data["mathpro"],data["values"],data["title"] )
-            if not request.session.get("chart_renders",None):
-                request.session["chart_renders"]={"user_name":request.session["user_name"]}
-            request.session["chart_renders"].update({chartobj._chart_id:chartobj})
+            CacheChartRender.objects.create(author=User.objects.get(id=request.session["user_id"]),chartid=chartobj._chart_id,chartrender_text=pickle.loads(chartobj)).save()
+
             request.session.save()
             context= dict(
                 echart=chartobj.render_embed(),
@@ -404,18 +400,15 @@ def delfiles(request):
                 pathFieldName="ChartPath__in"
                 mediadir='download'
                 filesfilter=CustomChartFile.objects.filter(author=User.objects.get(id=request.session['user_id']))
+                #删除对应的单文件渲染
             elif data.get("file_port")=="fileslist":
                 pathFieldName="uploadfile__in"
                 mediadir="upload"
                 filesfilter=UploadFile.objects.filter(author=User.objects.get(id=request.session['user_id']))
             elif data.get("file_port")=="cachelist":
                 try:
-                    for del_chart_id in data["del_files"]:
-                        del request.session["chart_renders"][del_chart_id]
-                    request.session.save()
-                    user_cachefile=os.path.join(MEDIA_ROOT,'cache',request.session.get('user_name'))
-                    with open(user_cachefile,'wb+') as cf:
-                        pickle.dump(request.session["chart_renders"],cf)
+                    del_ids=data["del_files"]
+                    CacheChartRender.objects.filter(author=User.objects.get(id=request.session["user_id"]),chartid__in=del_ids).delete()
                     return JsonResponse({},safe=False)
                 except Exception as e:
                     return JsonResponse(errormsg,safe=False) 
@@ -423,6 +416,7 @@ def delfiles(request):
                 raise DrawChartException("文件目录错误")
             kwargs={pathFieldName:[ mediadir+"/"+request.session["user_name"]+"/"+del_file for del_file in data.get("del_files")]}
             filesfilter.filter(**kwargs).delete()
+            delsingle_CR(request.session,data.get("del_files"))
             return JsonResponse({"deleted":True},safe=False)
         except DrawChartException as e:
             errormsg.update(worning=e.wornning())
@@ -433,13 +427,14 @@ def delfiles(request):
 @login_required       
 def cachechart(request):
     """
-    找到缓存在session['chart_renders']里的，指定的临时单图渲染器，重新渲染出前端代码
+    找到缓存在数据库里的，指定的临时单图渲染器，重新渲染出前端代码
     """
     errormsg={"worning":"缓存文件丢失"}  
     if request.is_ajax():
         try:
             data=json.loads(request.body.decode())
-            chartobj=request.session['chart_renders'].get(data['cachechart_id'])
+            
+            chartobj=getCacheChart(request.session["user_id"],data['cachechart_id'])
             context= dict(
                 echart=chartobj.render_embed(),
                 chart_id=chartobj._chart_id,
@@ -460,6 +455,7 @@ def csv2table(request):
             all_result=single_CR.dataframe
         else:
             fullfilename=os.path.join(MEDIA_URL,"upload",request.session["user_name"],filename)
+            print(fullfilename)
             all_result=single_CR.getDataFrame(fullfilename)
         recordsTotal=all_result.shape[0]
             # 第一条数据的起始位置
@@ -477,7 +473,6 @@ def csv2table(request):
             # 排序类型，升序降序
         fun_order = request.POST['order[0][dir]']
             # 排序开启，匹配表格列
-        print(all_result.shape[0],start,length)
         if by_name:
             if fun_order=="asc":
                 ascending=True
@@ -488,22 +483,21 @@ def csv2table(request):
             # 模糊查询，包含内容就查询
         if new_searchs:                
             new_searchs=new_searchs.split(" ")
+            print(new_searchs)
             allserch=Series([False]*all_result.shape[0])
             for new_search in new_searchs:
                 cutsearch=Series([False]*all_result.shape[0])
                 for col in all_result.columns:
-                    if all_result[col].dtype==str:
+                    if all_result[col].dtype==str or all_result[col].dtype==object:
                         cutsearch=cutsearch|all_result[col].str.contains(new_search)
                 allserch=cutsearch|allserch
             all_result=all_result[allserch]
             # 获取首页的数据
-        print(all_result.shape[0],start,length)
         recordsFiltered=all_result.shape[0]
         datas = all_result.iloc[start:(start+length)]
             # 转为字典
 
         resp  = [dict(obj.items()) for _,obj in datas.iterrows()]
-        print(resp)
             #返回计数，总条数，返回数据
         result = {
             'draw': draw,
@@ -519,15 +513,19 @@ def structure(request):
     """
     传输指定图表所必须的数据格式信息  {name,xaxis。。。}
     """
-    errormsg={"worning":"获取图表构造失败"}  
+    errormsg={"worning":"获取图表构造失败,可能是工作文件已删除，请刷新或重新指定"}  
+    print("-------------")
     if request.is_ajax():
         try:
             single_CR=request.session.get("work_book",None)
             if single_CR:
                 data=json.loads(request.body.decode())
                 return JsonResponse(single_CR.getDataFormat(data['charttype']).clientdatadict,safe=False)
+            else:
+                return JsonResponse(errormsg,safe=False)
         except DrawChartException as e:
             return JsonResponse(errormsg,safe=False)
+    
 @login_required
 def downloaddatafile(request):
     """
@@ -535,14 +533,9 @@ def downloaddatafile(request):
     """
     errormsg={"worning":"下载失败"}  
     try:
-        print(json.loads(request.body.decode()))
         filename=json.loads(request.body.decode())["filename"]
         
         fullfilename=os.path.join(MEDIA_URL,"upload",request.session["user_name"],filename)
-#         file=open(fullfilename,'rb')
-#         response =FileResponse(file)
-#         response['Content-Type']='application/octet-stream'
-#         response['Content-Disposition']='attachment;filename='+filename
         return JsonResponse({"fileURL":fullfilename},safe=False)
         
     except DrawChartException as e:

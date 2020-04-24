@@ -5,6 +5,7 @@ from django.dispatch.dispatcher import receiver
 from django.core.files.storage import FileSystemStorage
 from djpyec.settings import MEDIA_ROOT
 import os
+from django.template.defaultfilters import default
 # # Create your models here.
 
 
@@ -46,7 +47,15 @@ class CustomChartFile(models.Model):
     class Meta:
         verbose_name = "下载文件"
         verbose_name_plural= "下载文件html"
-        
+
+class CacheChartRender(models.Model):
+    author=models.ForeignKey(User,on_delete=models.CASCADE)
+    chartid=models.CharField(max_length=64,unique=True)
+    charttitle=models.CharField(max_length=64,default="默认标题")
+    chartrender_text=models.BinaryField()
+    class Meta:
+        verbose_name = "缓存图表文件"
+        verbose_name_plural= "缓存图表文件-pickle码"
 @receiver(pre_delete, sender=UploadFile)
 def upload_delete(sender, instance, **kwargs):
     instance.uploadfile.delete(False)
