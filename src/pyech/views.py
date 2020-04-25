@@ -18,14 +18,10 @@ from utils.ChartUtils import DrawCustomChart,str2bool
 from utils.generatechartoptions import getChartOptions
 from djpyec.settings import HOST
 from utils.tranchart import getSupporttype
-from utils.tensorcase import TensorModel,Oprfuncs,argschanel, select_csv,\
+from utils.tensorcase import Oprfuncs,argschanel, select_csv,\
     select_npy
-from numpy import arange
 import uuid
-import numpy
 import traceback
-from fileinput import filename
-from django.views.decorators.csrf import csrf_exempt
 from pandas.core.series import Series
 from pyech.models import CacheChartRender
 ECHARTS_REMOTE_HOST = HOST+STATIC_URL+"JS"
@@ -278,7 +274,7 @@ def draw(request):
             data["options"]=str2bool(data["options"])
             single_CR=request.session["work_book"]
             chartobj=single_CR.drawchart(charttype=data['charttype'],dataformats=data['dataformats'],options=data["options"],title=data["title"])
-            CacheChartRender.objects.create(author=User.objects.get(id=request.session["user_id"]),chartid=chartobj._chart_id,chartrender_text=pickle.dumps(chartobj)).save()
+            CacheChartRender.objects.create(author=User.objects.get(id=request.session["user_id"]),chartid=chartobj._chart_id,chartrender_text=pickle.dumps(chartobj),charttitle=data["title"]).save()
             context= dict(
                 echart=chartobj.render_embed(),
                 chart_id=chartobj._chart_id,

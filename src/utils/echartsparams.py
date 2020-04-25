@@ -81,10 +81,11 @@ bar3d_params={**baseparams,
               }
 scatter3d_params=line3d_params=surface3d_params={**baseparams,
         "is_visualmap":True,
-        "visual_range_color":['#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8', '#ffffbf','#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026'],
+        #"visual_range_color":['#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8', '#ffffbf','#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026'],
         "is_grid3D_rotate":True, 
         "grid3D_rotate_speed":1,
-        "visual_type":"color"
+        "grid3d_shading":'realistic',
+        #"visual_type":"color"
                }
 kline_params={**baseparams,
               

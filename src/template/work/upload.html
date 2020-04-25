@@ -135,7 +135,7 @@
 
 <div class="right-body ">
     <!-- table容器-->
-    <div class="csv_dt"><table id="CSVTable"></table></div>
+    <div class="csv_dt"><div> <table id="CSVTable"></table></div></div>
     <!-- chart 容器 -->
     <div id="myCarousel" class="carousel slide" >
 	<!-- 轮播（Carousel）指标 -->
@@ -269,7 +269,13 @@ $(function () {
         });
     })
     //监听文件名的悬停事件，提取表头
-    $("#fileslist div.rows a:nth-child(2)").hover(function(){
+
+    $("div.rows a:nth-child(2)").hover(function(){
+        if(!$.contains($("#fileslist ")[0],this)){
+            $(this).attr("title",$(this).text());
+            return false;
+        }
+            
         var thistitle=""
         $.ajax({
 		url:"/hoverheaderinfo/",
@@ -498,8 +504,8 @@ var DToptions={
             "order": [[0,"asc"]],
 			//浏览器缓存状态
 			"stateSave":false,
-			//是否自动计算列宽，计算列宽会花费一些时间，如果列宽通过aoColumns传递，可以关闭该属性作为优化  
-			"bAutoWidth":true,  
+//			//是否自动计算列宽，计算列宽会花费一些时间，如果列宽通过aoColumns传递，可以关闭该属性作为优化  
+//			"bAutoWidth":false,  
 			//是否延迟渲染， 
 			"bDeferRender":true, 
             //多次实例化需要允许销毁
@@ -507,11 +513,10 @@ var DToptions={
             "retrieve":true,
             "ajax":{"type": 'POST' ,"url": '/csv2table/',},
 			//额外参数
-			"fnServerParams": function ( aoData ) { 		
-			aoData.file=''
-			}  ,
-            // 返回数据
-            //columns: cols,
+//			"fnServerParams": function ( aoData ) { 		
+//			aoData.file=''
+//			}  ,
+
             language: {
 					"decimal": "",//小数的小数位符号  比如“，”作为数字的小数位符号
 					"emptyTable": "没有数据哟~~",//没有数据时要显示的字符串
@@ -549,10 +554,10 @@ function KetDataTable(fname,cols){
             $(".csv_dt table#CSVTable").empty();
             console.log($(".csv_dt table#CSVTable"));
             $("#CSVTable").remove()
-            $("div.right-body div.csv_dt").append("<table id='CSVTable'></table>")
+            $("div.right-body div.csv_dt div").append("<table id='CSVTable'></table>")
         }
     try {
-            dt=$(".csv_dt #CSVTable").dataTable(DToption).api();
+            dt=$("#CSVTable").dataTable(DToption).api();
         } catch(err) {
             console.log(err);
 //        window.location.reload(true);

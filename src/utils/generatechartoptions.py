@@ -347,6 +347,17 @@ def Nodataformattranst(clientdatadict):
 
 def axis3Ddataformattranst(clientdatadict):
     return {'name':clientdatadict.get("name",""),"data":list(zip(clientdatadict["x"],clientdatadict["y"],clientdatadict["z"])) }
+
+def scatter3Ddataformattranst(clientdatadict):
+    xyzdata=[clientdatadict["x"],clientdatadict["y"],clientdatadict["z"]]
+    if "extra_color" in clientdatadict:
+        xyzdata.append(clientdatadict["extra_color"])
+    if "extra_size" in clientdatadict:
+        xyzdata.append(clientdatadict["extra_size"]) 
+    resdata=list(zip(*xyzdata)) 
+    print(resdata)
+    return {'name':clientdatadict.get("name",""),"data":resdata}
+
 def calendardataformattranst(clientdatadict):
     clientdatadict["date"]=[i.replace("/","-") for i in clientdatadict["date"] ]
     return (clientdatadict.get("name",""),list(zip(clientdatadict["date"],clientdatadict["value"])) )
@@ -357,8 +368,14 @@ def geolinesdataformattranst(clientdatadict):
         return {'name':clientdatadict.get("name",""),"data":list(zip(clientdatadict["from"],clientdatadict["to"])) }
 
 def bar3ddataformattranst(clientdatadict):
-    index_x=[ clientdatadict["x_axis"].index(i) for i in clientdatadict["x"]]
-    index_y=[ clientdatadict["y_axis"].index(i) for i in clientdatadict["y"]]
+    if isinstance(clientdatadict["x"][0],int):
+        index_x=clientdatadict["x"]
+    else:
+        index_x=[ clientdatadict["x_axis"].index(i) for i in clientdatadict["x"]]
+    if isinstance(clientdatadict["y"][0],int):
+        index_y=clientdatadict["y"]
+    else:
+        index_y=[ clientdatadict["y_axis"].index(i) for i in clientdatadict["y"]]
     return {'name':clientdatadict.get("name",""),
             'x_axis':clientdatadict["x_axis"],
             'y_axis':clientdatadict["y_axis"],
@@ -395,6 +412,7 @@ scatterdataformat=DataFormater({'name':'组名','x_axis':'横坐标','y_axis':'�
 geolinesdataformat=DataFormater({'name':'组名','from':'出发城市','to':'目标城市','value':'路线权值'},geolinesdataformattranst)
 calendarsdataformat=DataFormater({'name':'组名','date':'日期','value':'值'},calendardataformattranst)
 grid3d_dataformat=DataFormater({'name':'组名','x':'x坐标','y':'y坐标','z':'z坐标'},axis3Ddataformattranst)
+scatter3d_dataformat=DataFormater({'name':'组名','x':'x坐标','y':'y坐标','z':'z坐标','extra_color':'点的颜色','extra_size':'点的大小'},scatter3Ddataformattranst)
 bar3ddataformat=DataFormater({'name':'组名','x_axis':'横轴','y_axis':'纵轴','x':'横坐标','y':'纵坐标','value':'值'},bar3ddataformattranst)
 heatmapdataformat=DataFormater({'name':'组名','x_axis':'横轴','y_axis':'纵轴','x':'横坐标','y':'纵坐标','value':'值'},heatmapdataformattranst)
 klinedataformat=DataFormater({'name':'组名','x_axis':'横轴','open':'开盘价','close':'收盘价','highest':'高位价','lowest':'低位价'},klinedataformattranst)
@@ -412,7 +430,7 @@ Dataformats={
             'geolines':geolinesdataformat,
             'bar3d':bar3ddataformat,
             'line3d':grid3d_dataformat,
-            'scatter3d':grid3d_dataformat,
+            'scatter3d':scatter3d_dataformat,
             'kline':klinedataformat,
             'radar':radardataformat,
             'calendarheatmap':calendarsdataformat,

@@ -12,10 +12,31 @@ from utils.generatechartoptions import Dataformats
 import chardet
 import copy
 from pyecharts.charts.radar import Radar
+from pyecharts.charts.scatter3D import Scatter3D
+from copy import deepcopy
 # 单图画布长宽
 canvas_width=800
 canvas_height=400
-
+ec_visual_map = {
+                "type": "continuous",
+                "inRange": {'color':["#50a3ba", "#eac763", "#d94e5d"]},
+                "calculable": True,
+                "splitNumber": 5,
+                "orient": 'vertical', 
+                "left": 'left',
+                "top": '20px',
+                "showLabel": True,
+            }
+es_visual_map = {
+                "type": "continuous",
+                "inRange": {'symbolSize':[10,30]},
+                "calculable": True,
+                "splitNumber": 5,
+                "orient": 'horizontal',
+                "left": 'left',
+                "top": 'bottom',
+                "showLabel": True,
+            }
 class single_chartrender:
     """
         单文件图表渲染器
@@ -38,7 +59,7 @@ class single_chartrender:
         self.__dataformat=Dataformats.get(charttype,None)
         return self.__dataformat   
     
-    def __draw(self,ChartCls,final_dataformats,final_options,**clsoptions):
+    def __draw(self,ChartCls,final_dataformats,final_options,extra_color=None,extra_size=None,**clsoptions):
         chartobj=ChartCls(**clsoptions)
         for dataformat in final_dataformats:
             if ChartCls==Radar:
@@ -48,6 +69,18 @@ class single_chartrender:
                 chartobj.add(**dataformat,**final_options)
             else:
                 chartobj.add(*dataformat,**final_options)
+        # 插入两个visualmap从颜色和大小表示4维度或5维
+        if ChartCls==Scatter3D:
+            print(chartobj._option.get("visualMap"))
+            vmlist=[]
+            if extra_color:
+                extra_color.update(ec_visual_map)
+                vmlist.append(extra_color)
+            if extra_size:
+                extra_size.update(es_visual_map)
+                vmlist.append(extra_size)
+            print(vmlist)
+            chartobj._option["visualMap"]=vmlist
         return chartobj
     def drawchart(self,charttype="bar",dataformats=None,options=None,title=""):
         """
@@ -56,9 +89,9 @@ class single_chartrender:
         @dataformats:基础数据格式 例如{name:[a,b],xaxis:[姓名,学号]，yxais:[英语成绩,数学成绩]}
         @options:样式参数
         """
-        dataformats=self.__dataformatHanding(dataformats)
+        ec,es,finaldataformats=self.__dataformatHanding(dataformats)
         ChartCls=self.__getEchartCls(charttype)
-        params=self.__getParams(charttype)
+        params=self.__getParams(charttype)#默认样式
         if not ChartCls:
             raise DrawChartException("不支持这种图表")
         if not params:
@@ -67,15 +100,15 @@ class single_chartrender:
             self.getDataFormat(charttype)
         tmparams=copy.deepcopy(params)
         tmparams.update(options)
-        options=tmparams
-        if options.get("funnel_gap", None) is not None:
-            options["funnel_gap"]=float(options["funnel_gap"])
+        finaloptions=tmparams
+        if finaloptions.get("funnel_gap", None) is not None:
+            finaloptions["funnel_gap"]=float(finaloptions["funnel_gap"])
         
-        if charttype in ["bar","line"] and len(dataformats)*len(dataformats[0]['x_axis'])>20:
-            options.update(is_datazoom_show=True)
+        if charttype in ["bar","line"] and len(finaldataformats)*len(finaldataformats[0]['x_axis'])>20:
+            finaloptions.update(is_datazoom_show=True)
         clsoptions=dict(title=title,width=canvas_width,height=canvas_height,title_pos="left")
-        return self.__draw(ChartCls, dataformats, options,**clsoptions) 
-        # ,dict(ChartCls=ChartCls, dataformats=dataformats, options=options,clsoptions=clsoptions)
+        return self.__draw(ChartCls, finaldataformats, finaloptions,extra_color=ec,extra_size=es,**clsoptions) 
+        # ,dict(ChartCls=ChartCls, dataformats=finaldataformats, options=options,clsoptions=clsoptions)
 
     
     def __check_dataformats(self,dataformats):
@@ -93,7 +126,42 @@ class single_chartrender:
             for k in dataformats.keys():
                 dataformats[k].pop(i)
         return dataformats
-    
+
+    def __scatter3dChant(self,reallistdata,ecv,esv,ein): 
+        ec={}
+        es={}
+        tol=["x","y","z"]
+        if ecv:
+            if ecv in ein :
+                ecdimension=ein.index(ecv)
+                ec.update(dimension=ecdimension,
+                          text=['color',ecv],
+                          min=min(reallistdata[tol[ecdimension]]),
+                          max=max(reallistdata[tol[ecdimension]]))
+            else:
+                ec.update(dimension=3,
+                          text=['color',ecv],
+                          min=min(reallistdata["extra_color"]),
+                          max=max(reallistdata["extra_color"]))
+        if esv:
+            if esv in ein :
+                esdimension=ein.index(esv)
+                es.update(dimension=esdimension,
+                          text=['size',esv],
+                          min=min(reallistdata[tol[esdimension]]),
+                          max=max(reallistdata[tol[esdimension]]))
+            elif ecdimension!=3:
+                es.update(dimension=3,
+                          text=['size',esv],
+                          min=min(reallistdata["extra_size"]),
+                          max=max(reallistdata["extra_size"]))
+            else:
+                es.update(dimension=4,
+                          text=['size',esv],
+                          min=min(reallistdata["extra_size"]),
+                          max=max(reallistdata["extra_size"])) 
+        print(ec,es) 
+        return ec,es
     def __dataformatHanding(self,dataformats):
         '''
          $ 关于dataformat的总操作：
@@ -109,15 +177,29 @@ class single_chartrender:
             for k in dataformats.keys():
                 if k=='name':
                     tempdict['name']=dataformats[k][idx]
+                # 非必须 +空  忽视跳过
+                elif k.startswith("extra") and dataformats[k][idx]=='':
+                    continue
+                # 必须+空    异常
                 elif not k.startswith("extra") and dataformats[k][idx]=='':
                     raise DrawChartException('坐标数据不完整')
-                elif k.startswith("extra"):
-                    continue
+                # 非空 填充
                 else:
                     tempdict[k]=dataformats[k][idx]
-            dataformatsresult.append(self.__dataformat.dataformattranst(self.__dataformat_separate(self.dataframe,tempdict)))
+
+            #替换实际列数据
+            reallistdata=self.__dataformat_separate(self.dataframe,tempdict)
+            
+            # scatter3d特殊处理
+            ecv=tempdict.get("extra_color")
+            esv=tempdict.get("extra_size")
+            ein=[tempdict["x"],tempdict["y"],tempdict["z"]]
+            ec,es=self.__scatter3dChant(reallistdata, ecv, esv, ein)  
+            #有机整合，有的是字典，有的是二元数组
+            resdata=self.__dataformat.dataformattranst(reallistdata)
+            dataformatsresult.append(resdata)
         
-        return dataformatsresult
+        return ec,es,dataformatsresult
                     
 
     
@@ -127,11 +209,15 @@ class single_chartrender:
         return {name:柱状图,xaxis:[张三，李四....]，yxais:[60,57....]}
         $ 将dataformat里的关于df的列名换成实际数据
         """
+        dataformat=deepcopy(dataformat)
         allcolumns=df.columns.values.tolist()
         for k,v in dataformat.items():
             if k!='name':
                 if v not in allcolumns:
                     raise DrawChartException("表格没有"+str(v)+"这一列")
+                # scatter3d特别处理 减少数据量
+                elif (k=="extra_color" or k=="extra_size") and k in [dataformat["x"],dataformat["y"],dataformat["z"]]:
+                    continue
                 else:
                     dataformat.update({k:df[v].to_list()})
         return dataformat
@@ -157,6 +243,7 @@ class single_chartrender:
         """
         df=None
         encodeName=None
+        print(csv_file)
         with open(csv_file,"rb") as ef:
             data=ef.read(100000)
             encodeName=chardet.detect(data).get("encoding")
