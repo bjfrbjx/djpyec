@@ -71,7 +71,6 @@ class single_chartrender:
                 chartobj.add(*dataformat,**final_options)
         # 插入两个visualmap从颜色和大小表示4维度或5维
         if ChartCls==Scatter3D:
-            print(chartobj._option.get("visualMap"))
             vmlist=[]
             if extra_color:
                 extra_color.update(ec_visual_map)
@@ -79,7 +78,7 @@ class single_chartrender:
             if extra_size:
                 extra_size.update(es_visual_map)
                 vmlist.append(extra_size)
-            print(vmlist)
+            print("++++++++++-",vmlist)
             chartobj._option["visualMap"]=vmlist
         return chartobj
     def drawchart(self,charttype="bar",dataformats=None,options=None,title=""):
@@ -131,6 +130,7 @@ class single_chartrender:
         ec={}
         es={}
         tol=["x","y","z"]
+        ecdimension=0
         if ecv:
             if ecv in ein :
                 ecdimension=ein.index(ecv)
@@ -160,7 +160,7 @@ class single_chartrender:
                           text=['size',esv],
                           min=min(reallistdata["extra_size"]),
                           max=max(reallistdata["extra_size"])) 
-        print(ec,es) 
+        print("******",ec,es)
         return ec,es
     def __dataformatHanding(self,dataformats):
         '''
@@ -193,8 +193,12 @@ class single_chartrender:
             # scatter3d特殊处理
             ecv=tempdict.get("extra_color")
             esv=tempdict.get("extra_size")
-            ein=[tempdict["x"],tempdict["y"],tempdict["z"]]
-            ec,es=self.__scatter3dChant(reallistdata, ecv, esv, ein)  
+            print(ecv,"$$$$$$$$$$",esv)
+            if ecv or esv:
+                ein=[tempdict["x"],tempdict["y"],tempdict["z"]]
+                ec,es=self.__scatter3dChant(reallistdata, ecv, esv, ein)  
+            else :
+                ec,es=None,None
             #有机整合，有的是字典，有的是二元数组
             resdata=self.__dataformat.dataformattranst(reallistdata)
             dataformatsresult.append(resdata)
@@ -219,7 +223,8 @@ class single_chartrender:
                 elif (k=="extra_color" or k=="extra_size") and k in [dataformat["x"],dataformat["y"],dataformat["z"]]:
                     continue
                 else:
-                    dataformat.update({k:df[v].to_list()})
+                    print(df[v].to_list())
+                    dataformat.update({k:df[v].dropna().to_list()})
         return dataformat
 
     
@@ -228,7 +233,6 @@ class single_chartrender:
         $ 检查@df中是否有axes指定的 列和values指定的列，并且将df按照axes,values分成两个dataframe
         """
         allcolumns=df.columns.values.tolist()
-        print(axes,values)
         for axis in axes:
             if axis not in allcolumns:
                 raise DrawChartException("表格没有"+str(axis)+"这一列")
@@ -243,7 +247,6 @@ class single_chartrender:
         """
         df=None
         encodeName=None
-        print(csv_file)
         with open(csv_file,"rb") as ef:
             data=ef.read(100000)
             encodeName=chardet.detect(data).get("encoding")

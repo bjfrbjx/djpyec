@@ -83,8 +83,8 @@ def getCacheChartRenders(userid,username,instance=False,chartids=None):
             chart_renders[ccr[0]]=pickle.loads(ccr[1])
     else:
         for ccr in CCRs:
-            
             chart_renders.append({"chartid":ccr[0],"charttitle":ccr[1]})
+    print("----------",chart_renders)
     return chart_renders
 
 def getCacheChart(userid,chartid):

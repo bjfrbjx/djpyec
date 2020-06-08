@@ -23,7 +23,8 @@ def ck_enable_grid(chartobj):
      确认grid支持这种图表
     """
     global grid_enable_charts
-    return isinstance(chartobj, grid_enable_charts)
+    #return isinstance(chartobj, grid_enable_charts)
+    return True
 
 
 def getCustom_chart(customtype):
@@ -41,10 +42,11 @@ def page_custom_chart(chart_renders,**kwargs):
     """
     page=Page(page_title=kwargs.get("page_title","PAGE_TITLE"))
     for _,single_chart in chart_renders.items():
-        if single_chart:
-            page.add(single_chart)
-        else:
-            raise DrawChartException("服务器未找到图表,可能已被删除")
+        if _ !="user_name":
+            if single_chart :
+                page.add(single_chart)
+            else:
+                raise DrawChartException("服务器未找到图表,可能已被删除")
     return page
 
 
@@ -60,10 +62,16 @@ def grid_custom_chart(chart_renders,**kwargs):
     container_width=float(kwargs.get("width",WIDTH))
     container_height=float(kwargs.get("height",HEIGHT))
     grid=Grid(page_title=kwargs.get("page_title","PAGE_TITLE"),width=container_width,height=container_height)
-    chartsnum=len(chart_renders)
-    auto_width=container_width/(chartsnum//2)-(chartsnum//2)*INTERVAL
-    auto_height=container_height/2-INTERVAL
-        
+    kwargs.update({"user_name":chart_renders.pop("user_name")})
+    chartsnum=len(chart_renders )
+    if chartsnum==1:
+        auto_width=container_width
+        auto_height=container_height
+    else:
+        auto_width=container_width/(chartsnum//2)-(chartsnum//2)*INTERVAL
+        auto_height=container_height/2-INTERVAL
+    
+    print("len-",len(chart_renders.keys()))
     for idx,single_chart_id in enumerate(chart_renders.keys()):
         single_chart=chart_renders.get(single_chart_id)
         if single_chart:
@@ -114,6 +122,7 @@ def grid_custom_chart(chart_renders,**kwargs):
                     if "%" in R :
                         R=float(R.strip('%'))*0.008*r_bz
                     single_chart._option["series"][0]["radius"]=[r,R]
+                print(single_chart_id,single_chart)
                 grid.add(single_chart,
                                 grid_left=grid_left,
                                 grid_top=grid_top,
@@ -122,6 +131,7 @@ def grid_custom_chart(chart_renders,**kwargs):
                                 )
         else:
             raise DrawChartException("服务器未找到图表,可能已被删除")
+    chart_renders.update({"user_name":kwargs.pop("user_name")})
     return grid
 
 def overlap_custom_chart(chart_renders,**kwargs):
@@ -136,6 +146,7 @@ def overlap_custom_chart(chart_renders,**kwargs):
     container_height=float(kwargs.get("height",HEIGHT))
     overlap=Overlap(page_title=kwargs.get("page_title","PAGE_TITLE"),width=container_width,height=container_height)
     x,y=0,0
+    kwargs.update({"user_name":chart_renders.pop("user_name")})
     for single_chart_id,single_chart in chart_renders.items():
         if single_chart:
             if not single_chart._option.get("xAxis"):
@@ -163,6 +174,7 @@ def overlap_custom_chart(chart_renders,**kwargs):
             
         else:
             raise DrawChartException("服务器未找到图表,可能已被删除")
+    chart_renders.update({"user_name":kwargs.pop("user_name")})
     return overlap
 
 
@@ -183,9 +195,11 @@ def timeline_custom_chart(chart_renders,**kwargs):
     page_title=kwargs.pop("page_title","PAGE_TITLE")
     container_width=float(kwargs.pop("width",WIDTH))
     container_height=float(kwargs.pop("height",HEIGHT))
+
     single_option={}
     for i in chart_renders.keys():
         single_option[i]=kwargs.pop(i,None)
+    m=chart_renders.pop("user_name")
     timeline=Timeline(page_title=page_title,width=container_width,height=container_height,**kwargs)
     for single_chart_id,single_chart in chart_renders.items():
         if single_chart:
@@ -197,6 +211,8 @@ def timeline_custom_chart(chart_renders,**kwargs):
             timeline.add(single_chart,time_point)
         else:
             raise DrawChartException("服务器未找到图表,可能已被删除")
+    print("oooooooooooooooo")
+    chart_renders.update({"user_name":m})
     return timeline
     
 

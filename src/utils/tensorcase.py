@@ -5,7 +5,7 @@ Created on 2020年1月28日
 '''
 import numpy as  np
 from TensorLib import tools
-from pandas import Series ,DataFrame,concat
+from pandas import Series ,DataFrame,concat,set_option
 import copy
 import re
 from utils.drawchart import DrawChartException, single_chartrender
@@ -15,8 +15,9 @@ from djpyec.settings import MEDIA_ROOT
 import numpy
 from django.core.cache import cache
 import pickle
+import pandas
 p = re.compile(r'[(](.*?)[)]', 16)
-
+mulgr=re.compile("\d+:(\d+,)+")
 def listprod(la,lb,spltpont="-"):
     """
     $ 将列表内元素全拼接  
@@ -179,6 +180,18 @@ class TensorModel(object):
         for nd in ndls[1:]:
             t=listprod(t,nd,spltpont=spltpont)
         return t
+    def __check_ndimgrpcond(self,mulgrpcondstr):
+        """
+        $ 校验分组条件语句
+        @grpcondstr: 分组条件语句
+        """
+        v=0
+        if mulgrpcondstr=="" or mulgrpcondstr is None:
+            return True
+        if re.match(mulgr, mulgrpcondstr) is None:
+            raise shapeException("维度条件语句不合规范，请用3:2,3,;的格式")
+        else:
+            return True
     def __check_grpcond(self,grpcondstr):
         """
         $ 校验分组条件语句
@@ -245,16 +258,33 @@ class TensorModel(object):
             else :
                 grpconds=["ALL"]
             dfstmp=[]
-            for grpcond in grpconds:
-                if grpcond is None or grpcond.strip()=="":
+            for mulgrpcond in grpconds:
+                print("mulgrpcond",mulgrpcond)
+                if mulgrpcond is None or mulgrpcond.strip()=="":
                     continue
+                if ";" in mulgrpcond:
+                    ndimgrpcond,grpcond=mulgrpcond.split(";")
+                elif ":" in mulgrpcond:
+                    ndimgrpcond=mulgrpcond
+                    grpcond=None
+                else:
+                    grpcond=mulgrpcond
+                    ndimgrpcond=None
                 if grpcond.upper().strip()=="ALL":
                     grpcond="v==v"
-                if self.__check_grpcond(grpcond):
-                    V=v=self.data
+                if self.__check_grpcond(grpcond) and self.__check_ndimgrpcond(ndimgrpcond):
+                    if ndimgrpcond is None or ndimgrpcond.strip()=="":
+                        V=v=self.data
+                    else:
+                        ndimindex,grouplist=ndimgrpcond.strip().split(":")
+                        ndimindex=int(ndimindex.strip())
+                        grouplist="("+grouplist+")"
+                        shapelen=len(self.data.shape)
+                        V=v=eval("self.data["+":,"*ndimindex+grouplist+",]")
+                    
                     grpdataindex=np.where(eval(grpcond))# locals={"v":v}
                     grpdatavalue=v[grpdataindex]
-                    susfix="" if grpcond.lower()=="v==v" else "["+grpcond+"]" 
+                    susfix=mulgrpcond
                     columns=[str(k)+susfix for k in self.ndimaxis]+["value"+susfix,]
                     nandata = np.full((grpdatavalue.size,len(grpdataindex)+1), np.nan)
                     
@@ -263,6 +293,7 @@ class TensorModel(object):
                         subsdf[val]=grpdataindex[idx]
                     subsdf["value"+susfix]=grpdatavalue
                     dfstmp.append(subsdf)
+ 
             tmpaxisdict=copy.deepcopy(self.axisdict)#坐标轴矩阵，空值填充
             maxlen= max(self.shape)
             tmpk=list(tmpaxisdict.keys())
@@ -270,26 +301,9 @@ class TensorModel(object):
                 tmpaxisdict[str(k)+"轴"]=tmpaxisdict[k]+[None]*(maxlen-len(tmpaxisdict[k]))
                 del tmpaxisdict[k]
             dfstmp.append(DataFrame(data=tmpaxisdict))
+            p1=concat(dfstmp,axis=1)
             return concat(dfstmp,axis=1)
 
-    
-            columns=self.ndimaxis+['value',]
-            nandata = np.full((len(self.data.flat),len(columns), np.nan))
-            subsdf=DataFrame(data=nandata,columns=columns,dtype=str)#数值矩阵
-            tmpaxisdict=copy.deepcopy(self.axisdict)#坐标轴矩阵，空值填充
-            maxlen= max(self.shape)
-            tmpk=list(tmpaxisdict.keys())
-            for k in tmpk:
-                tmpaxisdict[str(k)+"轴"]=tmpaxisdict[k]+[None]*(maxlen-len(tmpaxisdict[k]))
-                del tmpaxisdict[k]
-                
-            coldf=DataFrame(data=tmpaxisdict)
-            axisvalues=tuple(self.axisdict.values())
-            for idx,flatv in enumerate(self.data.flat):
-                for i,v in enumerate(tools.ind2sub(self.shape,idx)):
-                    subsdf.iat[idx,i]=v #axisvalues[i][v]
-                subsdf.at[idx,'value']=flatv
-            return concat([subsdf,coldf],axis=1)
     def operchanel(self,opertype,axischeck=None,ndimcheck=None):
         """
         $ 对张量的操作

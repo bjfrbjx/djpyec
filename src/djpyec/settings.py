@@ -29,6 +29,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 HOST="http://127.0.0.1:8080"
+HOST=""
 #HOST="http://39.105.96.122"
 
 # Application definition

@@ -24,6 +24,7 @@ import uuid
 import traceback
 from pandas.core.series import Series
 from pyech.models import CacheChartRender
+import copy
 ECHARTS_REMOTE_HOST = HOST+STATIC_URL+"JS"
 
 from django.core.cache import cache
@@ -301,7 +302,7 @@ def conformchart(request):
         try:
             data=json.loads(request.body.decode())
             data["options"]=str2bool(data["options"])
-            chart_renders=getCacheChartRenders(request.session["user_id"],request.session["user_name"],instance=True,chartids=data["conform_charts"])
+            chart_renders=copy.copy(getCacheChartRenders(request.session["user_id"],request.session["user_name"],instance=True,chartids=data["conform_charts"]))
             customchartfilepath=DrawCustomChart( chart_renders, data["customtype"],**data["options"])
             CCF=CustomChartFile(author=User.objects.get(id=request.session["user_id"]),ChartPath=customchartfilepath)
             CCF.save()
