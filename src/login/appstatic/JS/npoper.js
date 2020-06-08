@@ -1,7 +1,4 @@
 
-/**
- * src="/static/JS/npoper.js"
- */
 var d3WIDTH=600
 var d3HEIGHT=400
 var npinfo={}
