@@ -256,6 +256,7 @@ function ajaxgetAxict(keyid,idx){
     });
 }
 
+
 // 获取最值等信息填充至框体
 function ajaxgetM(keyid){
 	console.log({keyid:keyid})

@@ -491,7 +491,7 @@ def csv2table(request):
             all_result=all_result[allserch]
             # 获取首页的数据
         recordsFiltered=all_result.shape[0]
-        datas = all_result.iloc[start:(start+length)]
+        datas = all_result.iloc[start:(start+length)].fillna('')
             # 转为字典
 
         resp  = [dict(obj.items()) for _,obj in datas.iterrows()]

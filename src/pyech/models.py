@@ -12,7 +12,7 @@ from django.template.defaultfilters import default
 class file_storage(FileSystemStorage):
     def get_available_name(self, name,max_length=None):
         if self.exists(name):
-            os.remove(os.path.join( MEDIA_ROOT, name))
+            os.remove(os.path.join(MEDIA_ROOT, name))
         return name
 
 def user_directory_path(instance, filename):
